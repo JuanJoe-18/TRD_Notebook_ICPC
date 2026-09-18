@@ -143,7 +143,6 @@ struct StringHash {
         h1.assign(n + 1, 0); h2.assign(n + 1, 0);
         p1.assign(n + 1, 1); p2.assign(n + 1, 1);
         for (int i = 0; i < n; i++) {
-            // Asume que el string contiene minúsculas. Ajustar si hay mayúsculas o ASCII completo.
             h1[i + 1] = (h1[i] * BASE1 + (s[i] - 'a' + 1)) % MOD1;
             h2[i + 1] = (h2[i] * BASE2 + (s[i] - 'a' + 1)) % MOD2;
             p1[i + 1] = (p1[i] * BASE1) % MOD1;
@@ -152,10 +151,13 @@ struct StringHash {
     }
 
     // Devuelve el Hash del substring S[l..r] (0-indexed, inclusivo) en O(1)
-    pair<ll, ll> get_hash(int l, int r) {
+    // Empaquetado en un solo uint64_t (Mitad superior: hash1, Mitad inferior: hash2)
+    uint64_t get_hash(int l, int r) {
         ll hash1 = (h1[r + 1] - (h1[l] * p1[r - l + 1]) % MOD1 + MOD1) % MOD1;
         ll hash2 = (h2[r + 1] - (h2[l] * p2[r - l + 1]) % MOD2 + MOD2) % MOD2;
-        return {hash1, hash2};
+
+        // Desplazamos hash1 a los 32 bits más significativos y lo unimos con hash2
+        return ((uint64_t)hash1 << 32) | (uint32_t)hash2;
     }
 };
 
@@ -466,6 +468,84 @@ struct SuffixAutomaton {
     }
 };
 
+/**
+ * 9. Suffix Array (Arreglo de Sufijos) + LCP Array
+ * Construcción: SA en O(N log N) con Radix Sort, LCP en O(N) con Kasai.
+ * Agrega automáticamente el centinela '$' (ASCII menor que 'a'-'z').
+ * p[i]   = Índice donde comienza el i-ésimo sufijo lexicográficamente menor.
+ * lcp[i] = Longitud del prefijo común más largo entre p[i] y p[i-1].
+ */
+struct SuffixArray {
+    string s;
+    int n;
+    vector<int> p, c, lcp;
+
+    SuffixArray(string _s) : s(_s + "$"), n(s.size()) {
+        build_sa();
+        build_lcp();
+    }
+
+    void build_sa() {
+        const int alphabet = 256;
+        p.assign(n, 0);
+        c.assign(n, 0);
+        vector<int> cnt(max(alphabet, n), 0), p_new(n), c_new(n);
+
+        // K = 0 (Ordenar por el primer caracter)
+        for (int i = 0; i < n; i++) cnt[s[i]]++;
+        for (int i = 1; i < alphabet; i++) cnt[i] += cnt[i - 1];
+        for (int i = 0; i < n; i++) p[--cnt[s[i]]] = i;
+        
+        c[p[0]] = 0;
+        int classes = 1;
+        for (int i = 1; i < n; i++) {
+            if (s[p[i]] != s[p[i - 1]]) classes++;
+            c[p[i]] = classes - 1;
+        }
+
+        // Transiciones K -> K + 1 (Longitudes 2^k)
+        for (int k = 0; (1 << k) < n; ++k) {
+            for (int i = 0; i < n; i++) {
+                p_new[i] = p[i] - (1 << k);
+                if (p_new[i] < 0) p_new[i] += n;
+            }
+
+            fill(cnt.begin(), cnt.begin() + classes, 0);
+            for (int i = 0; i < n; i++) cnt[c[p_new[i]]]++;
+            for (int i = 1; i < classes; i++) cnt[i] += cnt[i - 1];
+            for (int i = n - 1; i >= 0; i--) p[--cnt[c[p_new[i]]]] = p_new[i];
+
+            c_new[p[0]] = 0;
+            classes = 1;
+            for (int i = 1; i < n; i++) {
+                pair<int, int> cur = {c[p[i]], c[(p[i] + (1 << k)) % n]};
+                pair<int, int> prev = {c[p[i - 1]], c[(p[i - 1] + (1 << k)) % n]};
+                if (cur != prev) classes++;
+                c_new[p[i]] = classes - 1;
+            }
+            c.swap(c_new);
+        }
+    }
+
+    // Algoritmo de Kasai para construir el LCP en O(N)
+    void build_lcp() {
+        lcp.assign(n, 0);
+        vector<int> rank(n, 0);
+        for (int i = 0; i < n; i++) rank[p[i]] = i;
+        
+        int k = 0;
+        for (int i = 0; i < n - 1; i++) { // n-1 para ignorar el sufijo "$"
+            int pi = rank[i];
+            int j = p[pi - 1];
+            // Expandimos el match actual
+            while (s[i + k] == s[j + k]) k++;
+            lcp[pi] = k;
+            if (k > 0) k--; // Descontamos el primer caracter para el siguiente sufijo
+        }
+    }
+};
+
+
 int main() {
     // 1. Optimización rápida
     ios_base::sync_with_stdio(0); cin.tie(0);
@@ -478,26 +558,16 @@ int main() {
     // string s = "abracadabra";
     // vector<int> z = StringAlgo::z_function(s);
 
-    // 2. Hash O(1)
-    // StringHash sh(s);
-    // if(sh.get_hash(0, 3) == sh.get_hash(7, 10)) {
-    //     // ¡Detectó que "abra" es igual a "abra" en O(1)!
-    // }
+    // 2. KMP (búsqueda de patrones)
+    // string s = "ababcababc";
+    // vector<int> pi = StringAlgo::prefix_function(s);
 
-    // 3. Trie
-    // Trie trie;
-    // trie.insert("codeforces");
-    // if(trie.search("codeforces")) cout << "YES\n";
-
-    // 4. Aho-Corasick (múltiples patrones sobre un texto)
-    // AhoCorasick ac;
-    // ac.insert("aba");
-    // ac.insert("ba");
-    // ac.build();
-    // vector<int> cnt = ac.count_occurrences("ababa");
-    // vector<int> first = ac.first_occurrences("ababa");
-
-    // 5. Manacher (palíndromo más largo)
+    // 3. KMP Stack (eliminar todas las ocurrencias)
+    // string s = "ababcababc";
+    // string p = "abc";
+    // string result = StringAlgo::remove_all_occurrences(s, p);
+    
+    // 4. Manacher (palíndromo más largo)
     // string s = "babad";
     // vector<int> p = StringAlgo::manacher(s);
     // int max_len = 0, center_idx = 0;
@@ -510,11 +580,49 @@ int main() {
     // int start = (center_idx - max_len) / 2;
     // // cout << "Max palindrome: " << s.substr(start, max_len) << "\n";
 
-    // 6. Suffix Automaton
+    // 5. Hash O(1)
+    // StringHash sh(s);
+    // if(sh.get_hash(0, 3) == sh.get_hash(7, 10)) {
+    //     // ¡Detectó que "abra" es igual a "abra" en O(1)!
+    // }
+
+    // 6. Trie
+    // Trie trie;
+    // trie.insert("codeforces");
+    // if(trie.search("codeforces")) cout << "YES\n";
+    
+    // 7. Aho-Corasick (múltiples patrones sobre un texto)
+    // AhoCorasick ac;
+    // ac.insert("aba");
+    // ac.insert("ba");
+    // ac.build();
+    // vector<int> cnt = ac.count_occurrences("ababa");
+    // vector<int> first = ac.first_occurrences("ababa");
+
+    // 8. Suffix Automaton
     // SuffixAutomaton sam(s);
     // ll distinct = sam.distinct_substrings();
     // ll veces = sam.count_occurrences("aba");
     // int pos = sam.first_occurrence("aba");
+
+    // 9. Suffix Array + LCP
+    // string s = "banana";
+    // SuffixArray sa(s);
+    //
+    // // a) Imprimir los sufijos ordenados (Ignorando i=0 que es "$")
+    // // for(int i = 1; i < sa.n; i++) {
+    // //     cout << sa.p[i] << ": " << sa.s.substr(sa.p[i]) << "\n";
+    // // }
+    //
+    // // b) Substring repetido más largo (Max del LCP array)
+    // // int max_lcp = 0, start_idx = 0;
+    // // for(int i = 1; i < sa.n; i++) {
+    // //     if(sa.lcp[i] > max_lcp) {
+    // //         max_lcp = sa.lcp[i];
+    // //         start_idx = sa.p[i];
+    // //     }
+    // // }
+    // // cout << "Repetido mas largo: " << sa.s.substr(start_idx, max_lcp) << "\n";
 
     return 0;
 }
