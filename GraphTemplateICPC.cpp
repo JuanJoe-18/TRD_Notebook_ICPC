@@ -54,7 +54,7 @@ struct DSU {
     int find(int x) {
         return p[x] == x ? x : p[x] = find(p[x]);
     }
-    
+
     /**
      * @brief Une los conjuntos a los que pertenecen a y b.
      * @param a Primer elemento.
@@ -152,7 +152,7 @@ struct Graph {
     // ---------------------------------------------------------
     // ALGORITMOS INTEGRADOS
     // ---------------------------------------------------------
-    
+
     // 1. Dijkstra O(E log V)
     vector<T> dijkstra(int src) {
         vector<T> dist(n + 1, LINF);
@@ -174,15 +174,37 @@ struct Graph {
         return dist;
     }
 
+    // 8. Floyd-Warshall O(V^3) - All-Pairs Shortest Path
+    // Retorna una matriz de distancias. Útil solo si N <= 400.
+    vector<vector<T>> floyd_warshall() {
+        vector<vector<T>> dist(n + 1, vector<T>(n + 1, LINF));
+        for (int i = 1; i <= n; i++) dist[i][i] = 0;
+        for (auto& e : edges) {
+            dist[e.from][e.to] = min(dist[e.from][e.to], e.weight);
+            // Si el grafo es no dirigido, asegúrate de que 'edges' tenga ambas direcciones
+        }
+
+        for (int k = 1; k <= n; k++) {
+            for (int i = 1; i <= n; i++) {
+                for (int j = 1; j <= n; j++) {
+                    if (dist[i][k] < LINF && dist[k][j] < LINF) {
+                        dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                    }
+                }
+            }
+        }
+        return dist;
+    }
+
     // 2. Ordenamiento Topológico (Kahn's Algorithm)
     vector<int> topo_sort() {
         vector<int> in_degree(n + 1, 0), order;
         for (auto& e : edges) in_degree[e.to]++;
-        
+
         queue<int> q;
-        for (int i = 1; i <= n; i++) 
+        for (int i = 1; i <= n; i++)
             if (in_degree[i] == 0) q.push(i);
-            
+
         while (!q.empty()) {
             int u = q.front(); q.pop();
             order.push_back(u);
@@ -199,7 +221,7 @@ struct Graph {
     vector<int> get_scc() {
         vector<int> val(n + 1, 0), comp(n + 1, -1);
         vector<int> z; int timer = 0, ncomps = 0;
-        
+
         auto dfs = [&](auto& self, int u) -> int {
             int low = val[u] = ++timer, x;
             z.push_back(u);
@@ -263,7 +285,7 @@ struct Graph {
         vector<int> state(n + 1, 0); // 0: Blanco (no visitado), 1: Gris (en pila), 2: Negro (terminado)
         vector<int> parent(n + 1, -1);
         vector<int> cycle;
-        
+
         auto dfs = [&](auto& self, int u) -> bool {
             state[u] = 1; // Gris
             for (int id : adj[u]) {
@@ -301,7 +323,7 @@ struct Graph {
         vector<int> state(n + 1, 0); // 0: Blanco, 1: Gris (en pila), 2: Negro
         vector<int> parent_node(n + 1, -1);
         vector<int> cycle;
-        
+
         auto dfs = [&](auto& self, int u, int p_edge_idx) -> bool {
             state[u] = 1;
             for (int id : adj[u]) {
@@ -345,16 +367,16 @@ struct Graph {
     pair<T, vector<int>> kruskal() {
         vector<int> edge_indices(edges.size());
         iota(edge_indices.begin(), edge_indices.end(), 0);
-        
+
         // Ordenar índices de las aristas por peso
         sort(edge_indices.begin(), edge_indices.end(), [&](int a, int b) {
             return edges[a].weight < edges[b].weight;
         });
-        
+
         DSU dsu(n + 1);
         T mst_weight = 0;
         vector<int> mst_edges;
-        
+
         for (int idx : edge_indices) {
             auto& e = edges[idx];
             if (dsu.unite(e.from, e.to)) {
@@ -363,7 +385,7 @@ struct Graph {
                 if (mst_edges.size() == (size_t)(n - 1)) break;
             }
         }
-        
+
         return {mst_weight, mst_edges};
     }
 
@@ -378,7 +400,7 @@ struct Graph {
             in_deg[e.to]++;
             max_id = max(max_id, e.id);
         }
-        
+
         // 1. Verificación de grados (Condición de Euler)
         for (int i = 1; i <= n; i++) {
             if (undirected) {
@@ -391,12 +413,12 @@ struct Graph {
         vector<bool> used_edge(max_id + 1, false);
         vector<int> circuit;
         vector<int> head(n + 1, 0); // Puntero O(E) para iterar adj
-        
+
         auto dfs = [&](auto& self, int u) -> void {
             while (head[u] < adj[u].size()) {
                 int edge_idx = adj[u][head[u]++];
                 auto& e = edges[edge_idx];
-                
+
                 if (e.id != -1) {
                     if (!used_edge[e.id]) {
                         used_edge[e.id] = true;
@@ -409,15 +431,15 @@ struct Graph {
             }
             circuit.push_back(u);
         };
-        
+
         dfs(dfs, start_node);
         reverse(circuit.begin(), circuit.end());
-        
+
         // 2. Verificación de conectividad (deben haberse usado todas las aristas)
         // Para grafos no dirigidos, circuit.size() debe ser igual a M + 1 (donde M = edges.size() / 2)
         int required_size = undirected ? (edges.size() / 2 + 1) : (edges.size() + 1);
         if (circuit.size() != required_size && edges.size() > 0) return {};
-        
+
         return circuit;
     }
 };
@@ -433,7 +455,7 @@ struct FunctionalGraph {
     int n, log_k;
     vector<vector<int>> up;
     vector<int> succ;
-    
+
     // Información de ciclos
     vector<vector<int>> cycles;    // Lista con todos los ciclos [ [c1, c2, c3], ... ]
     vector<int> in_cycle;          // 1 si el nodo u pertenece a un ciclo, 0 si no
@@ -460,7 +482,7 @@ struct FunctionalGraph {
 
         for (int i = 1; i <= n; i++) {
             if (state[i] != 0) continue;
-            
+
             int curr = i;
             vector<int> path;
             while (curr >= 1 && curr <= n && state[curr] == 0) {
@@ -477,7 +499,7 @@ struct FunctionalGraph {
                     if (u == curr) found_start = true;
                     if (found_start) cyc.push_back(u);
                 }
-                
+
                 int cid = cycles.size();
                 int c_sz = cyc.size();
                 for (int pos = 0; pos < c_sz; pos++) {
@@ -624,7 +646,7 @@ struct TwoSat {
         int node_v = get_node(v, is_v_true);
         int not_v = get_node(v, !is_v_true);
         int node_u = get_node(u, is_u_true);
-        
+
         G.add_directed_edge(not_u, node_v); // !u -> v
         G.add_directed_edge(not_v, node_u); // !v -> u
     }
@@ -658,7 +680,7 @@ struct TwoSat {
     // Los resultados quedan en el arreglo booleano 'assignment'
     bool solve() {
         vector<int> comp = G.get_scc(); // Tarjan O(V+E)
-        
+
         for (int i = 1; i <= n; i++) {
             if (comp[i] == comp[i + n]) {
                 return false; // Contradicción: u y !u están en el mismo ciclo
@@ -671,17 +693,485 @@ struct TwoSat {
     }
 };
 
+// ==========================================
+// EMPAREJAMIENTO BIPARTITO (Kuhn's Algorithm) O(V * E)
+// ==========================================
+// Útil para Maximum Bipartite Matching. Para N, M <= 1000.
+struct BipartiteMatcher {
+    int n, m;
+    vector<vector<int>> adj;
+    vector<int> match; // match[v] = nodo de 'U' emparejado con 'v' (de 'V')
+    vector<bool> vis;
+
+    // n = tamaño del conjunto U (izquierdo), m = tamaño del conjunto V (derecho)
+    BipartiteMatcher(int _n, int _m) : n(_n), m(_m) {
+        adj.resize(n + 1);
+        match.assign(m + 1, -1);
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+    }
+
+    bool dfs(int u) {
+        for (int v : adj[u]) {
+            if (vis[v]) continue;
+            vis[v] = true;
+            if (match[v] < 0 || dfs(match[v])) {
+                match[v] = u;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int solve() {
+        int ans = 0;
+        for (int i = 1; i <= n; i++) {
+            vis.assign(m + 1, false);
+            if (dfs(i)) ans++;
+        }
+        return ans;
+    }
+};
+
+// ==========================================
+// PUENTES, PUNTOS DE ARTICULACIÓN Y BRIDGE TREE
+// ==========================================
+struct BridgeTree {
+    int n, timer, num_comps;
+    vector<vector<pair<int, int>>> adj; // {v, edge_id}
+    vector<int> tin, low, comp_id;
+    vector<bool> is_bridge, is_articulation;
+
+    // El Bridge Tree (Árbol condensado de componentes biconexas)
+    vector<vector<int>> tree_adj;
+
+    BridgeTree(int _n, int num_edges) : n(_n) {
+        adj.resize(n + 1);
+        tin.assign(n + 1, -1);
+        low.assign(n + 1, -1);
+        comp_id.assign(n + 1, 0);
+        is_bridge.assign(num_edges, false);
+        is_articulation.assign(n + 1, false);
+        timer = 0;
+        num_comps = 0;
+    }
+
+    void add_edge(int u, int v, int id) {
+        adj[u].push_back({v, id});
+        adj[v].push_back({u, id});
+    }
+
+    void dfs_tarjan(int u, int p = -1) {
+        tin[u] = low[u] = ++timer;
+        int children = 0;
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int id = edge.second;
+            if (v == p) continue;
+
+            if (tin[v] != -1) {
+                low[u] = min(low[u], tin[v]);
+            } else {
+                children++;
+                dfs_tarjan(v, u);
+                low[u] = min(low[u], low[v]);
+
+                if (low[v] > tin[u]) is_bridge[id] = true;
+                if (low[v] >= tin[u] && p != -1) is_articulation[u] = true;
+            }
+        }
+        if (p == -1 && children > 1) is_articulation[u] = true;
+    }
+
+    void dfs_comp(int u, int current_comp) {
+        comp_id[u] = current_comp;
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int id = edge.second;
+            if (comp_id[v] == 0) {
+                if (is_bridge[id]) {
+                    num_comps++;
+                    tree_adj.push_back(vector<int>()); // Nuevo nodo en el árbol
+                    tree_adj[current_comp].push_back(num_comps);
+                    tree_adj[num_comps].push_back(current_comp);
+                    dfs_comp(v, num_comps);
+                } else {
+                    dfs_comp(v, current_comp);
+                }
+            }
+        }
+    }
+
+    void build() {
+        for (int i = 1; i <= n; i++) {
+            if (tin[i] == -1) dfs_tarjan(i);
+        }
+        tree_adj.push_back(vector<int>()); // Dummy 0
+        for (int i = 1; i <= n; i++) {
+            if (comp_id[i] == 0) {
+                num_comps++;
+                tree_adj.push_back(vector<int>());
+                dfs_comp(i, num_comps);
+            }
+        }
+    }
+};
+
+// ==========================================
+// MAX FLOW (Dinic's Algorithm) O(V^2 * E)
+// ==========================================
+// Muy rápido en la práctica. O(E * sqrt(V)) en grafos bipartitos.
+struct Dinic {
+    struct FlowEdge {
+        int v, u;
+        ll cap, flow = 0;
+        FlowEdge(int _u, int _v, ll _cap) : u(_u), v(_v), cap(_cap) {}
+    };
+
+    int n, s, t;
+    vector<FlowEdge> edges;
+    vector<vector<int>> adj;
+    vector<int> level, ptr;
+
+    Dinic(int _n, int _s, int _t) : n(_n), s(_s), t(_t) {
+        adj.resize(n + 1);
+        level.resize(n + 1);
+        ptr.resize(n + 1);
+    }
+
+    void add_edge(int u, int v, ll cap, bool directed = true) {
+        adj[u].push_back(edges.size());
+        edges.push_back(FlowEdge(u, v, cap));
+        adj[v].push_back(edges.size());
+        edges.push_back(FlowEdge(v, u, directed ? 0 : cap));
+    }
+
+    bool bfs() {
+        fill(level.begin(), level.end(), -1);
+        level[s] = 0;
+        queue<int> q;
+        q.push(s);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int id : adj[u]) {
+                if (edges[id].cap - edges[id].flow < 1) continue;
+                if (level[edges[id].v] != -1) continue;
+                level[edges[id].v] = level[u] + 1;
+                q.push(edges[id].v);
+            }
+        }
+        return level[t] != -1;
+    }
+
+    ll dfs(int u, ll pushed) {
+        if (pushed == 0) return 0;
+        if (u == t) return pushed;
+        for (int& cid = ptr[u]; cid < adj[u].size(); ++cid) {
+            int id = adj[u][cid];
+            int v = edges[id].v;
+            ll tr = edges[id].cap - edges[id].flow;
+            if (level[u] + 1 != level[v] || tr == 0) continue;
+            ll push = dfs(v, min(pushed, tr));
+            if (push == 0) continue;
+            edges[id].flow += push;
+            edges[id ^ 1].flow -= push;
+            return push;
+        }
+        return 0;
+    }
+
+    ll max_flow() {
+        ll flow = 0;
+        while (bfs()) {
+            fill(ptr.begin(), ptr.end(), 0);
+            while (ll pushed = dfs(s, LINF)) {
+                flow += pushed;
+            }
+        }
+        return flow;
+    }
+};
+
+// ==========================================
+// MIN COST MAX FLOW (SPFA-based Successive Shortest Path)
+// ==========================================
+struct MCMF {
+    struct Edge {
+        int to;
+        ll cap, flow, cost;
+        int rev;
+    };
+
+    int n;
+    vector<vector<Edge>> adj;
+    vector<ll> dist;
+    vector<int> p_node, p_edge;
+    vector<bool> in_queue;
+
+    MCMF(int _n) : n(_n) {
+        adj.resize(n + 1);
+        dist.resize(n + 1);
+        p_node.resize(n + 1);
+        p_edge.resize(n + 1);
+        in_queue.resize(n + 1);
+    }
+
+    void add_edge(int u, int v, ll cap, ll cost) {
+        adj[u].push_back({v, cap, 0, cost, (int)adj[v].size()});
+        adj[v].push_back({u, 0, 0, -cost, (int)adj[u].size() - 1});
+    }
+
+    bool spfa(int s, int t) {
+        fill(dist.begin(), dist.end(), LINF);
+        fill(in_queue.begin(), in_queue.end(), false);
+        queue<int> q;
+
+        dist[s] = 0;
+        q.push(s);
+        in_queue[s] = true;
+
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            in_queue[u] = false;
+
+            for (int i = 0; i < adj[u].size(); i++) {
+                auto& e = adj[u][i];
+                if (e.cap - e.flow > 0 && dist[e.to] > dist[u] + e.cost) {
+                    dist[e.to] = dist[u] + e.cost;
+                    p_node[e.to] = u;
+                    p_edge[e.to] = i;
+                    if (!in_queue[e.to]) {
+                        q.push(e.to);
+                        in_queue[e.to] = true;
+                    }
+                }
+            }
+        }
+        return dist[t] != LINF;
+    }
+
+    // Retorna {Max Flow, Min Cost}
+    pair<ll, ll> solve(int s, int t) {
+        ll flow = 0, cost = 0;
+        while (spfa(s, t)) {
+            ll push = LINF;
+            int curr = t;
+            while (curr != s) {
+                int p = p_node[curr];
+                int idx = p_edge[curr];
+                push = min(push, adj[p][idx].cap - adj[p][idx].flow);
+                curr = p;
+            }
+
+            flow += push;
+            curr = t;
+            while (curr != s) {
+                int p = p_node[curr];
+                int idx = p_edge[curr];
+                int rev_idx = adj[p][idx].rev;
+
+                adj[p][idx].flow += push;
+                adj[curr][rev_idx].flow -= push;
+                cost += push * adj[p][idx].cost;
+                curr = p;
+            }
+        }
+        return {flow, cost};
+    }
+};
+
 int main() {
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
-    
-    // Ejemplo de uso:
-    // int n, m; cin >> n >> m;
-    // Graph<ll> G(n);
-    // for(int i = 0; i < m; i++){
-    //     int u, v; ll w; cin >> u >> v >> w;
-    //     G.add_directed_edge(u, v, w);
+    // ==========================================
+    // EJEMPLOS DE USO MÁGICOS
+    // ==========================================
+
+    // ---------------------------------------------------------
+    // 1. DIJKSTRA & FLOYD-WARSHALL (Caminos Mínimos)
+    // ---------------------------------------------------------
+    // cout << "--- 1. SHORTEST PATHS ---\n";
+    // Instanciamos un grafo g1 de 3 nodos
+    // Graph<ll> g1(3);
+    // Agregamos aristas dirigidas (origen, destino, peso)
+    // g1.add_directed_edge(1, 2, 5);
+    // g1.add_directed_edge(2, 3, 10);
+    // g1.add_directed_edge(1, 3, 20);
+
+    // Calculamos los caminos mínimos desde el nodo 1 usando Dijkstra
+    // vector<ll> dist1 = g1.dijkstra(1);
+    // Imprimimos la distancia mínima al nodo 3 (la ruta óptima es 1->2->3 = 15)
+    // cout << "Dijkstra (1 -> 3): " << dist1[3] << "\n";
+
+    // Calculamos todas las distancias entre todos los pares (solo si V <= 400)
+    // auto fw = g1.floyd_warshall();
+    // Verificamos que la distancia en la matriz de 1 a 3 coincida (15)
+    // cout << "Floyd-Warshall (1 -> 3): " << fw[1][3] << "\n\n";
+
+    // ---------------------------------------------------------
+    // 2. SCC (Tarjan) & ORDENAMIENTO TOPOLÓGICO
+    // ---------------------------------------------------------
+    // cout << "--- 2. SCC & TOPO SORT ---\n";
+    // Grafo g2 de 4 nodos para buscar componentes fuertemente conexas
+    // Graph<ll> g2(4);
+    // Creamos un ciclo entre 1, 2 y 3
+    // g2.add_directed_edge(1, 2);
+    // g2.add_directed_edge(2, 3);
+    // g2.add_directed_edge(3, 1);
+    // Arista de escape hacia el nodo 4 (que no pertenece al ciclo)
+    // g2.add_directed_edge(3, 4);
+
+    // Tarjan O(V+E) asigna un ID único a cada componente biconexa
+    // vector<int> scc = g2.get_scc();
+    // 1, 2 y 3 comparten ID. El 4 tendrá un ID menor por ser sumidero topológico.
+    // cout << "IDs SCC -> Nodo 1: " << scc[1] << ", Nodo 3: " << scc[3] << ", Nodo 4: " << scc[4] << "\n";
+
+    // Grafo Acíclico Dirigido (DAG) de 3 nodos para Topo Sort
+    // Graph<ll> dag(3);
+    // dag.add_directed_edge(1, 2);
+    // dag.add_directed_edge(1, 3);
+    // dag.add_directed_edge(2, 3);
+    // Imprimimos el orden topológico (un nodo solo aparece si sus dependencias ya pasaron)
+    // cout << "Topo Sort de un DAG: ";
+    // for(int x : dag.topo_sort()) cout << x << " "; // Output: 1 2 3
+    // cout << "\n\n";
+
+    // ---------------------------------------------------------
+    // 3. KRUSKAL (MST) & DSU
+    // ---------------------------------------------------------
+    // cout << "--- 3. KRUSKAL (MST) ---\n";
+    // Grafo no dirigido g3 de 3 nodos para el Árbol de Expansión Mínima
+    // Graph<ll> g3(3);
+    // Aristas bidireccionales con pesos
+    // g3.add_undirected_edge(1, 2, 10);
+    // g3.add_undirected_edge(2, 3, 20);
+    // g3.add_undirected_edge(1, 3, 5);
+
+    // Extraemos el peso total y los índices de las aristas usadas en el MST
+    // auto [mst_weight, mst_edges] = g3.kruskal();
+    // Debe dar 15 (usa las aristas de peso 5 y 10 para conectar los 3 nodos)
+    // cout << "Peso del Arbol de Expansion Minima: " << mst_weight << "\n\n";
+
+    // ---------------------------------------------------------
+    // 4. 2-SAT (Satisfactibilidad)
+    // ---------------------------------------------------------
+    // cout << "--- 4. 2-SAT ---\n";
+    // Instanciamos 2-SAT para 3 variables booleanas (x1, x2, x3)
+    // TwoSat ts(3);
+    // Cláusula 1: (x1 OR x2)
+    // ts.add_clause(1, true, 2, true);
+    // Cláusula 2: (!x1 OR x3)
+    // ts.add_clause(1, false, 3, true);
+    // Cláusula 3: (!x2 OR !x3)
+    // ts.add_clause(2, false, 3, false);
+
+    // resolvemos la ecuación booleana
+    // if (ts.solve()) {
+        // Imprimimos la asignación válida que encontró Tarjan
+       //  cout << "Formula Satisfactible! x1=" << ts.assignment[1]
+             << " x2=" << ts.assignment[2] << " x3=" << ts.assignment[3] << "\n\n";
+    // } else {
+        // cout << "No hay solucion.\n\n"; // Saldría si hubiera una contradicción insalvable
     // }
-    
+
+    // ---------------------------------------------------------
+    // 5. FUNCTIONAL GRAPH (Grafos Sucesores)
+    // ---------------------------------------------------------
+    // cout << "--- 5. FUNCTIONAL GRAPH ---\n";
+    // Grafo donde TODO nodo tiene out-degree == 1 exacto
+    // FunctionalGraph fg(5);
+    // Arreglo de sucesores. El índice 0 es ignorado (1-indexed)
+    // 1->2, 2->3, 3->1 (Ciclo 1) | 4->5, 5->4 (Ciclo 2)
+    // vector<int> succ = {0, 2, 3, 1, 5, 4};
+    // Identifica todos los ciclos en O(N) de forma iterativa (anti Stack-Overflow)
+    // fg.decompose_cycles(succ);
+
+    // Imprime la cantidad de ciclos detectados (2 ciclos)
+    // cout << "Cantidad de ciclos puros: " << fg.cycles.size() << "\n";
+    // Confirma si el nodo 1 está atrapado en un ciclo (true)
+    // cout << "Nodo 1 pertenece a un ciclo? " << fg.in_cycle[1] << "\n\n";
+
+    // ---------------------------------------------------------
+    // 6. EULERIAN CIRCUIT
+    // ---------------------------------------------------------
+    // cout << "--- 6. EULERIAN CIRCUIT ---\n";
+    // Grafo g6 para buscar un camino que pase por todas las aristas exactamente una vez
+    // Graph<ll> g6(3);
+    // OBLIGATORIO: En grafos NO dirigidos, debes pasar IDs únicos (0, 1, 2)
+    // para evitar cruzar la misma arista de ida y vuelta engañando al algoritmo
+    // g6.add_undirected_edge(1, 2, 1, 0);
+    // g6.add_undirected_edge(2, 3, 1, 1);
+    // g6.add_undirected_edge(3, 1, 1, 2);
+
+    // Genera la secuencia de nodos del circuito empezando en 1
+    // cout << "Circuito Euleriano (Triangulo): ";
+    // for (int u : g6.eulerian_circuit(1, true)) cout << u << " ";
+    // cout << "\n\n"; // Imprime 1 2 3 1
+
+    // ---------------------------------------------------------
+    // 7. BIPARTITE MATCHING (Kuhn)
+    // ---------------------------------------------------------
+    // cout << "--- 7. BIPARTITE MATCHING ---\n";
+    // 3 nodos en conjunto A (Trabajadores) y 3 en conjunto B (Tareas)
+    // BipartiteMatcher bm(3, 3);
+    // Añadimos las aristas (Trabajador -> Tarea que sabe hacer)
+    // bm.add_edge(1, 1);
+    // bm.add_edge(1, 2); // El T1 es polivalente
+    // bm.add_edge(2, 2);
+    // bm.add_edge(3, 3);
+
+    // Kuhn calcula el "Maximum Bipartite Matching" en O(VE)
+    // cout << "Maximas asignaciones posibles: " << bm.solve() << "\n\n"; // Da 3 tareas asignadas
+
+    // ---------------------------------------------------------
+    // 8. BRIDGE TREE (Condensación Biconexa)
+    // ---------------------------------------------------------
+    // cout << "--- 8. BRIDGE TREE ---\n";
+    // 5 nodos, 5 aristas
+    // BridgeTree btree(5, 5);
+    // Parámetros: (u, v, edge_id_unico). Creamos un ciclo entre 1, 2 y 3.
+    // btree.add_edge(1, 2, 0);
+    // btree.add_edge(2, 3, 1);
+    // btree.add_edge(3, 1, 2);
+    // Aristas de escape que actuarán como PUENTES
+    // btree.add_edge(3, 4, 3);
+    // btree.add_edge(4, 5, 4);
+    // Condensamos el grafo. Todo ciclo colapsa en un solo super-nodo.
+    // btree.build();
+
+    // El ciclo {1,2,3} es un supernodo, 4 es otro, 5 es otro. Total = 3 nodos en el árbol nuevo.
+    // cout << "Cantidad de nodos en el arbol condensado: " << btree.num_comps << "\n\n";
+
+    // ---------------------------------------------------------
+    // 9. DINIC'S ALGORITHM (Max Flow)
+    // ---------------------------------------------------------
+    // cout << "--- 9. MAX FLOW (DINIC) ---\n";
+    // Dinic(nodos, Source, Sink)
+    // Dinic dinic(4, 1, 4);
+    // Aristas: (origen, destino, capacidad)
+    // dinic.add_edge(1, 2, 100);
+    // dinic.add_edge(1, 3, 50);
+    // dinic.add_edge(2, 4, 80);
+    // dinic.add_edge(3, 4, 70);
+    // Ejecuta BFS por niveles y DFS para encontrar cuellos de botella
+    // cout << "Flujo maximo posible: " << dinic.max_flow() << "\n\n"; // Envia 80 por arriba y 50 por abajo = 130
+
+    // ---------------------------------------------------------
+    // 10. MIN COST MAX FLOW (MCMF)
+    // ---------------------------------------------------------
+    // cout << "--- 10. MIN COST MAX FLOW ---\n";
+    // Red de flujo de 4 nodos
+    // MCMF mcmf(4);
+    // Aristas: (origen, destino, capacidad, costo_por_unidad)
+    // mcmf.add_edge(1, 2, 10, 5);
+    // mcmf.add_edge(1, 3, 10, 1); // Ruta más barata
+    // mcmf.add_edge(2, 4, 10, 2);
+    // mcmf.add_edge(3, 4, 10, 8);
+
+    // Calcula la forma más barata de enviar el mayor flujo posible de 1 a 4
+    // auto [flujo, costo] = mcmf.solve(1, 4);
+    // Flujo=20. Costo=(10 cap * (5+2 costo)) + (10 cap * (1+8 costo)) = 70 + 90 = 160.
+    // cout << "Max Flujo: " << flujo << ", Al Menor Costo: " << costo << "\n";
+
     return 0;
 }
