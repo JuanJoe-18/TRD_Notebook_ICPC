@@ -550,63 +550,158 @@ template <typename T = ll> struct HLD {
 };
 
 // ====================================================================
-// 5. CENTROID DECOMPOSITION (Árbol de Centroides)
+// CENTROID DECOMPOSITION (Árbol de Centroides)
 // ====================================================================
-// Descompone el árbol recursivamente en O(N log N) con altura <= log2(N).
-// Ideal para contar caminos con propiedad K, distancias mínimas a nodos
-// marcados, etc.
 struct CentroidDecomposition {
-  int n;
-  vector<vector<int>> adj;
-  vector<int> sz, c_parent;
-  vector<bool> removed;
+    int n;
+    vector<vector<pair<int, ll>>> adj;
+    vector<int> sz, c_parent;
+    vector<bool> removed;
+    
+    // --- Variables para Offline (Contar Pares) ---
+    ll total_paths = 0; 
+    ll K = 0; // Límite de distancia
+    
+    // --- Variables para Online (Xenia and Tree) ---
+    vector<ll> local_ans; 
 
-  CentroidDecomposition(int _n) : n(_n) {
-    adj.resize(n + 1);
-    sz.assign(n + 1, 0);
-    c_parent.assign(n + 1, 0);
-    removed.assign(n + 1, false);
-  }
-
-  void add_edge(int u, int v) {
-    adj[u].push_back(v);
-    adj[v].push_back(u);
-  }
-
-  int get_sizes(int u, int p = 0) {
-    sz[u] = 1;
-    for (int v : adj[u]) {
-      if (v != p && !removed[v]) {
-        sz[u] += get_sizes(v, u);
-      }
+    CentroidDecomposition(int _n) : n(_n) {
+        adj.resize(n + 1);
+        sz.assign(n + 1, 0);
+        c_parent.assign(n + 1, 0);
+        removed.assign(n + 1, false);
+        local_ans.assign(n + 1, LINF); // Inicializamos distancias en infinito
     }
-    return sz[u];
-  }
 
-  int get_centroid(int u, int p, int tree_size) {
-    for (int v : adj[u]) {
-      if (v != p && !removed[v] && sz[v] > tree_size / 2) {
-        return get_centroid(v, u, tree_size);
-      }
+    void add_edge(int u, int v, ll w = 1) {
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
     }
-    return u;
-  }
 
-  int build_tree(int u, int p = 0) {
-    int tree_size = get_sizes(u, 0);
-    int centroid = get_centroid(u, 0, tree_size);
-    removed[centroid] = true;
-    c_parent[centroid] = p;
-
-    for (int v : adj[centroid]) {
-      if (!removed[v]) {
-        build_tree(v, centroid);
-      }
+    int get_sizes(int u, int p = 0) {
+        sz[u] = 1;
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            if (v != p && !removed[v]) {
+                sz[u] += get_sizes(v, u);
+            }
+        }
+        return sz[u];
     }
-    return centroid;
-  }
 
-  int init() { return build_tree(1, 0); }
+    int get_centroid(int u, int p, int tree_size) {
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            if (v != p && !removed[v] && sz[v] > tree_size / 2) {
+                return get_centroid(v, u, tree_size);
+            }
+        }
+        return u;
+    }
+
+    // ========================================================
+    // TIPO A: LÓGICA OFFLINE (Contar pares con distancia <= K)
+    // ========================================================
+    void get_paths(int u, int p, ll dist, vector<ll>& paths) {
+        paths.push_back(dist);
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            ll w = edge.second;
+            if (v != p && !removed[v]) {
+                get_paths(v, u, dist + w, paths);
+            }
+        }
+    }
+
+    // Retorna cuántos pares dentro de 'paths' suman <= limite
+    ll count_pairs(vector<ll>& paths, ll limite) {
+        sort(paths.begin(), paths.end());
+        ll count = 0;
+        int l = 0, r = paths.size() - 1;
+        while (l < r) {
+            if (paths[l] + paths[r] <= limite) {
+                count += (r - l);
+                l++;
+            } else {
+                r--;
+            }
+        }
+        return count;
+    }
+
+    void process_centroid(int centroid) {
+        vector<ll> all_paths;
+        all_paths.push_back(0); // El propio centroide
+
+        // Calculamos sobre TODOS los hijos a la vez (incluye pares ilegales de la misma rama)
+        for (auto& edge : adj[centroid]) {
+            if (!removed[edge.first]) {
+                get_paths(edge.first, centroid, edge.second, all_paths);
+            }
+        }
+        total_paths += count_pairs(all_paths, K);
+
+        // RESTAMOS los pares ilegales (aquellos que suben y bajan por el MISMO subárbol)
+        for (auto& edge : adj[centroid]) {
+            if (!removed[edge.first]) {
+                vector<ll> subtree_paths;
+                get_paths(edge.first, centroid, edge.second, subtree_paths);
+                total_paths -= count_pairs(subtree_paths, K); // Restamos el exceso
+            }
+        }
+    }
+
+    // ========================================================
+    // CONSTRUCCIÓN DEL CENTROID TREE
+    // ========================================================
+    int build_tree(int u, int p = 0, bool offline_mode = false) {
+        int tree_size = get_sizes(u, 0);
+        int centroid = get_centroid(u, 0, tree_size);
+
+        if (offline_mode) {
+            process_centroid(centroid);
+        }
+
+        removed[centroid] = true;
+        c_parent[centroid] = p;
+
+        for (auto& edge : adj[centroid]) {
+            int v = edge.first;
+            if (!removed[v]) {
+                build_tree(v, centroid, offline_mode);
+            }
+        }
+        return centroid;
+    }
+
+    void init(bool offline_mode = false) { 
+        build_tree(1, 0, offline_mode); 
+    }
+
+    // ========================================================
+    // TIPO B: LÓGICA ONLINE (Xenia and Tree / Actualizaciones)
+    // ========================================================
+    // Pinta un nodo de rojo
+    void update(int u, LCA& lca) {
+        int curr = u;
+        while (curr != 0) {
+            ll dist = lca.get_dist(u, curr);
+            local_ans[curr] = min(local_ans[curr], dist);
+            curr = c_parent[curr];
+        }
+    }
+
+    // Consulta la distancia al rojo más cercano
+    ll query(int u, LCA& lca) {
+        ll best = LINF;
+        int curr = u;
+        while (curr != 0) {
+            ll dist = lca.get_dist(u, curr);
+            best = min(best, dist + local_ans[curr]);
+            curr = c_parent[curr];
+        }
+        return best;
+    }
 };
 
 // ====================================================================
