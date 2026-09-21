@@ -257,27 +257,36 @@ private:
     vector<bool> marked;
     const ll NEUTRAL = 0; // Cambiar a LINF para consultas de min
 
+    // --- 1. OPERACIÓN DE CONSULTA ---
     ll combine(ll a, ll b) {
-        return a + b; // Cambiar a min(a,b) si es RMQ
+        return a + b; // Cambiar a min(a,b) o max(a,b) según el problema
     }
 
+    // --- 2. OPERACIÓN DE ASIGNACIÓN (SET) ---
     void apply_set(int p, ll val, int L, int R) {
-        // Cambiar lógica según el tipo de combinación. 
-        // Esto es para consultas de Suma en Rango:
+        // Para RMQ (Min/Max): st[p] = val;
+        // Para Suma:
         st[p] = val * (R - L + 1); 
+        
         lazy_set[p] = val;
-        lazy_add[p] = 0;
+        lazy_add[p] = 0; // El SET borra cualquier ADD pendiente
         marked[p] = true;
     }
 
+    // --- 3. OPERACIÓN DE SUMA (ADD) ---
     void apply_add(int p, ll val, int L, int R) {
-        // Cambiar lógica según el tipo de combinación.
-        // Esto es para consultas de Suma en Rango:
+        // Para RMQ (Min/Max): st[p] += val;
+        // Para Suma:
         st[p] += val * (R - L + 1);
-        if (!marked[p]) lazy_add[p] += val;
-        else lazy_set[p] += val;
+        
+        if (marked[p]) {
+            lazy_set[p] += val; // Si ya había un SET, se vuelve un SET mayor
+        } else {
+            lazy_add[p] += val; // Si no, es un ADD normal
+        }
     }
 
+    // --- LOGICA INTERNA (No tocar en competencia) ---
     void push(int p, int L, int R) {
         int mid = L + (R - L) / 2;
         int left = p << 1;
@@ -309,8 +318,8 @@ private:
     void update(int p, int L, int R, int qL, int qR, ll val, int type) {
         if (qL > R || qR < L) return;
         if (qL <= L && R <= qR) {
-            if (type == 1) apply_add(p, val, L, R); // Tipo 1: Sumar al rango
-            if (type == 2) apply_set(p, val, L, R); // Tipo 2: Asignar valor al rango
+            if (type == 1) apply_add(p, val, L, R); // Tipo 1: Sumar
+            if (type == 2) apply_set(p, val, L, R); // Tipo 2: Asignar
             return;
         }
         push(p, L, R);
@@ -329,11 +338,15 @@ private:
                        query((p << 1) | 1, mid + 1, R, qL, qR));
     }
 
+    ll get_point(int p, int L, int R, int pos) {
+        if (L == R) return st[p];
+        push(p, L, R);
+        int mid = L + (R - L) / 2;
+        if (pos <= mid) return get_point(p << 1, L, mid, pos);
+        else return get_point((p << 1) | 1, mid + 1, R, pos);
+    }
+
 public:
-    /**
-     * Inicializa y construye el Lazy Segment Tree.
-     * @param a El arreglo de entrada (0-indexed).
-     */
     LazySegTree(const vector<ll>& a) {
         n = a.size();
         st.assign(4 * n, NEUTRAL);
@@ -343,35 +356,12 @@ public:
         build(1, 0, n - 1, a);
     }
 
-    /**
-     * Suma 'val' a todos los elementos en el rango [L, R].
-     * @param L Índice izquierdo (0-indexed, inclusivo).
-     * @param R Índice derecho (0-indexed, inclusivo).
-     * @param val Valor a sumar.
-     */
-    void add_range(int L, int R, ll val) {
-        update(1, 0, n - 1, L, R, val, 1);
-    }
-
-    /**
-     * Asigna 'val' a todos los elementos en el rango [L, R].
-     * @param L Índice izquierdo (0-indexed, inclusivo).
-     * @param R Índice derecho (0-indexed, inclusivo).
-     * @param val Nuevo valor a asignar.
-     */
-    void set_range(int L, int R, ll val) {
-        update(1, 0, n - 1, L, R, val, 2);
-    }
-
-    /**
-     * Consulta el valor combinado en el rango [L, R].
-     * @param L Índice izquierdo (0-indexed, inclusivo).
-     * @param R Índice derecho (0-indexed, inclusivo).
-     * @return Resultado combinado en el rango.
-     */
-    ll query(int L, int R) {
-        return query(1, 0, n - 1, L, R);
-    }
+    void add_range(int L, int R, ll val) { update(1, 0, n - 1, L, R, val, 1); }
+    void set_range(int L, int R, ll val) { update(1, 0, n - 1, L, R, val, 2); }
+    ll query(int L, int R) { return query(1, 0, n - 1, L, R); }
+    
+    // Novedad: Consulta el valor final de un solo nodo en O(log N) directo
+    ll get(int pos) { return get_point(1, 0, n - 1, pos); }
 };
 
 // ====================================================================
@@ -446,6 +436,74 @@ public:
      */
     ll query(ll L, ll R) {
         return query(root, 1, MAX_RANGE, L, R);
+    }
+};
+
+// ====================================================================
+// PERSISTENT SEGMENT TREE (Point Update, Range Query histórico)
+// ====================================================================
+class PersistentSegTree {
+private:
+    struct Node {
+        ll sum;
+        int left, right;
+        Node(ll _sum = 0, int _l = 0, int _r = 0) : sum(_sum), left(_l), right(_r) {}
+    };
+
+    vector<Node> st;
+    vector<int> roots; // Guarda las raíces de cada versión histórica
+    int n;
+
+    int new_node(ll sum, int left, int right) {
+        st.emplace_back(sum, left, right);
+        return st.size() - 1;
+    }
+
+    int build(int L, int R, const vector<ll>& a) {
+        if (L == R) return new_node(a[L], 0, 0);
+        int mid = L + (R - L) / 2;
+        int left_child = build(L, mid, a);
+        int right_child = build(mid + 1, R, a);
+        return new_node(st[left_child].sum + st[right_child].sum, left_child, right_child);
+    }
+
+    int update(int old_node, int L, int R, int pos, ll val) {
+        if (L == R) return new_node(st[old_node].sum + val, 0, 0); // Copia modificada
+        int mid = L + (R - L) / 2;
+        int left_child = st[old_node].left;
+        int right_child = st[old_node].right;
+        
+        if (pos <= mid) left_child = update(st[old_node].left, L, mid, pos, val);
+        else right_child = update(st[old_node].right, mid + 1, R, pos, val);
+        
+        return new_node(st[left_child].sum + st[right_child].sum, left_child, right_child);
+    }
+
+    ll query(int node, int L, int R, int qL, int qR) {
+        if (!node || qL > R || qR < L) return 0;
+        if (qL <= L && R <= qR) return st[node].sum;
+        int mid = L + (R - L) / 2;
+        return query(st[node].left, L, mid, qL, qR) + 
+               query(st[node].right, mid + 1, R, qL, qR);
+    }
+
+public:
+    PersistentSegTree(const vector<ll>& a) {
+        n = a.size();
+        st.emplace_back(); // Nodo 0 nulo
+        roots.push_back(build(0, n - 1, a)); // Versión 0
+    }
+
+    // Crea una nueva versión actualizando 'pos' con 'val' basándose en 'prev_version'
+    int update(int prev_version, int pos, ll val) {
+        int new_root = update(roots[prev_version], 0, n - 1, pos, val);
+        roots.push_back(new_root);
+        return roots.size() - 1; // Retorna el ID de la nueva versión
+    }
+
+    // Consulta el rango [L, R] en una versión específica del tiempo
+    ll query(int version, int L, int R) {
+        return query(roots[version], 0, n - 1, L, R);
     }
 };
 
