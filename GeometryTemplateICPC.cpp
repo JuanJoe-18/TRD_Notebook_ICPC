@@ -342,6 +342,101 @@ vector<Point<ld>> circle_circle_intersect(Circle c1, Circle c2) {
 }
 
 
+// ====================================================================
+// 11. INTERSECCIÓN DE SEMIPLANOS (Half-Plane Intersection) - O(N log N)
+// ====================================================================
+// Útil para hallar el núcleo de un polígono, intersecciones de Voronoi
+// o regiones factibles en programación lineal 2D.
+struct Halfplane {
+    Point<ld> p, pq; // pq es el vector direccional
+    ld angle;
+
+    Halfplane() {}
+    Halfplane(Point<ld> a, Point<ld> b) : p(a), pq(b - a) {
+        angle = atan2l(pq.y, pq.x);
+    }
+
+    // Verifica si un punto 'r' está AFUERA del semiplano (lado derecho estricto)
+    bool out(Point<ld> r) const {
+        return cross(pq, r - p) < -EPS;
+    }
+
+    // Ordenamiento por ángulo. Si son paralelos, se prioriza el más restrictivo (el de más a la izquierda)
+    bool operator<(const Halfplane& e) const {
+        if (abs(angle - e.angle) > EPS) return angle < e.angle;
+        return cross(pq, e.p - p) > EPS;
+    }
+};
+
+// Intersección de las líneas que definen dos semiplanos
+Point<ld> intersect(Halfplane s, Halfplane t) {
+    ld alpha = cross(t.p - s.p, t.pq) / cross(s.pq, t.pq);
+    return s.p + (s.pq * alpha);
+}
+
+// Retorna el polígono convexo resultante de limpiar duplicados y colineales
+// Si no hay intersección o el polígono está incompleto, retorna un vector vacío.
+vector<Point<ld>> halfplane_intersection(vector<Halfplane>& H) {
+    sort(H.begin(), H.end());
+    int n = H.size(), k = 0;
+    vector<Halfplane> U(n);
+    for (int i = 0; i < n; i++) {
+        if (i > 0 && abs(H[i].angle - H[i - 1].angle) < EPS) continue;
+        U[k++] = H[i];
+    }
+    H = U; H.resize(k);
+    n = k;
+
+    deque<Halfplane> dq;
+    dq.push_back(H[0]);
+    if (n > 1) dq.push_back(H[1]);
+
+    for (int i = 2; i < n; i++) {
+        while (dq.size() >= 2 && H[i].out(intersect(dq.back(), dq[dq.size() - 2]))) {
+            dq.pop_back();
+        }
+        while (dq.size() >= 2 && H[i].out(intersect(dq.front(), dq[1]))) {
+            dq.pop_front();
+        }
+        dq.push_back(H[i]);
+    }
+
+    while (dq.size() >= 3 && dq.front().out(intersect(dq.back(), dq[dq.size() - 2]))) {
+        dq.pop_back();
+    }
+    while (dq.size() >= 3 && dq.back().out(intersect(dq.front(), dq[1]))) {
+        dq.pop_front();
+    }
+
+    vector<Point<ld>> poly;
+    if (dq.size() < 3) return poly;
+
+    for (size_t i = 0; i < dq.size(); i++) {
+        poly.push_back(intersect(dq[i], dq[(i + 1) % dq.size()]));
+    }
+
+    // --- LIMPIEZA DE VÉRTICES DUPLICADOS Y COLINEALES ---
+    vector<Point<ld>> clean_poly;
+    for (size_t i = 0; i < poly.size(); i++) {
+        Point<ld> curr = poly[i];
+        Point<ld> next_p = poly[(i + 1) % poly.size()];
+
+        // Si el vértice actual es idéntico al siguiente (dentro del margen EPS), lo ignoramos
+        if (hypot(curr.x - next_p.x, curr.y - next_p.y) < EPS) continue;
+
+        // Si hay tres puntos colineales seguidos (prev, curr, next), el de en medio sobra
+        if (!clean_poly.empty()) {
+            Point<ld> prev_p = clean_poly.back();
+            if (abs(cross(curr - prev_p, next_p - curr)) < EPS) {
+                // Es colineal, actualizamos el extremo en lugar de meter un punto intermedio
+                continue;
+            }
+        }
+        clean_poly.push_back(curr);
+    }
+
+    return clean_poly;
+}
 
 // Nota para Union de Rectángulos / Area: requiere un Segment Tree
 // que maneje Range Sum (Active Length) con la compresión de coordenadas Y.
@@ -411,6 +506,31 @@ int main() {
     // Point<ld> la(0, 3), lb(10, 3);
     // vector<Point<ld>> l_inter = circle_line_intersect(la, lb, c1);
     // cout << "La linea corta el circulo en " << l_inter.size() << " puntos.\n";
+
+    // ---------------------------------------------------------
+    // 8. HALF-PLANE INTERSECTION (Intersección de Semiplanos)
+    // ---------------------------------------------------------
+    // cout << "--- 8. HALF-PLANE INTERSECTION ---\n";
+    // vector<Halfplane> planes;
+
+    // Creamos un área acotada: un Cuadrado de 10x10 desde (0,0) hasta (10,10)
+    // Recuerda: el área válida queda a la IZQUIERDA de la flecha A -> B
+    // planes.push_back(Halfplane(Point<ld>(0, 0), Point<ld>(10, 0))); // Piso (Hacia la derecha, válido arriba)
+    // planes.push_back(Halfplane(Point<ld>(10, 0), Point<ld>(10, 10))); // Pared derecha (Hacia arriba, válido izquierda)
+    // planes.push_back(Halfplane(Point<ld>(10, 10), Point<ld>(0, 10))); // Techo (Hacia la izquierda, válido abajo)
+    // planes.push_back(Halfplane(Point<ld>(0, 10), Point<ld>(0, 0))); // Pared izquierda (Hacia abajo, válido derecha)
+
+    // Ahora hacemos un corte diagonal que "reabana" la esquina superior derecha
+    // planes.push_back(Halfplane(Point<ld>(15, 5), Point<ld>(5, 15)));
+
+    // vector<Point<ld>> final_polygon = halfplane_intersection(planes);
+
+    // Debería generar un polígono de 5 vértices (un pentágono).
+    // cout << "El poligono resultante tiene " << final_polygon.size() << " vertices.\n";
+    // for(auto p : final_polygon) {
+        // cout << "Vertice: (" << p.x << ", " << p.y << ")\n";
+    // }
+    // cout << "\n";
 
     return 0;
 }
