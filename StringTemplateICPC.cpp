@@ -469,29 +469,27 @@ struct SuffixAutomaton {
 };
 
 /**
- * 9. Suffix Array (Arreglo de Sufijos) + LCP Array
- * Construcción: SA en O(N log N) con Radix Sort, LCP en O(N) con Kasai.
- * Agrega automáticamente el centinela '$' (ASCII menor que 'a'-'z').
- * p[i]   = Índice donde comienza el i-ésimo sufijo lexicográficamente menor.
- * lcp[i] = Longitud del prefijo común más largo entre p[i] y p[i-1].
- */
+* 9. Suffix Array + LCP Array + RMQ
+* Construcción SA+LCP en O(N log N).
+* Consultas LCP de cualquier par de índices en O(1) estricto.
+*/
 struct SuffixArray {
     string s;
-    int n;
-    vector<int> p, c, lcp;
+    int n, log_n;
+    vector<int> p, c, lcp, rank;
+    vector<vector<int>> st; // Sparse Table para el RMQ
 
     SuffixArray(string _s) : s(_s + "$"), n(s.size()) {
         build_sa();
         build_lcp();
+        build_rmq();
     }
 
     void build_sa() {
         const int alphabet = 256;
-        p.assign(n, 0);
-        c.assign(n, 0);
+        p.assign(n, 0); c.assign(n, 0);
         vector<int> cnt(max(alphabet, n), 0), p_new(n), c_new(n);
 
-        // K = 0 (Ordenar por el primer caracter)
         for (int i = 0; i < n; i++) cnt[s[i]]++;
         for (int i = 1; i < alphabet; i++) cnt[i] += cnt[i - 1];
         for (int i = 0; i < n; i++) p[--cnt[s[i]]] = i;
@@ -503,7 +501,6 @@ struct SuffixArray {
             c[p[i]] = classes - 1;
         }
 
-        // Transiciones K -> K + 1 (Longitudes 2^k)
         for (int k = 0; (1 << k) < n; ++k) {
             for (int i = 0; i < n; i++) {
                 p_new[i] = p[i] - (1 << k);
@@ -527,21 +524,45 @@ struct SuffixArray {
         }
     }
 
-    // Algoritmo de Kasai para construir el LCP en O(N)
     void build_lcp() {
         lcp.assign(n, 0);
-        vector<int> rank(n, 0);
-        for (int i = 0; i < n; i++) rank[p[i]] = i;
+        rank.assign(n, 0);
+        for (int i = 0; i < n; i++) rank[p[i]] = i; // Mapeo Inverso
         
         int k = 0;
-        for (int i = 0; i < n - 1; i++) { // n-1 para ignorar el sufijo "$"
+        for (int i = 0; i < n - 1; i++) { 
             int pi = rank[i];
             int j = p[pi - 1];
-            // Expandimos el match actual
             while (s[i + k] == s[j + k]) k++;
             lcp[pi] = k;
-            if (k > 0) k--; // Descontamos el primer caracter para el siguiente sufijo
+            if (k > 0) k--; 
         }
+    }
+
+    // Precalcula el mínimo en el arreglo LCP
+    void build_rmq() {
+        log_n = log2(n) + 1;
+        st.assign(n, vector<int>(log_n));
+        for (int i = 0; i < n; i++) st[i][0] = lcp[i];
+        
+        for (int j = 1; j < log_n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                st[i][j] = min(st[i][j - 1], st[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    // Retorna la longitud del prefijo común más largo (LCP) entre los sufijos 
+    // originales que arrancan en los índices 'i' y 'j' del string en O(1).
+    int get_lcp(int i, int j) {
+        if (i == j) return n - 1 - i; // Longitud del sufijo original completo (sin '$')
+        int u = rank[i];
+        int v = rank[j];
+        if (u > v) swap(u, v);
+        
+        u++; // Matemáticamente, el LCP en el rango está entre [u+1, v]
+        int k = log2(v - u + 1);
+        return min(st[u][k], st[v - (1 << k) + 1][k]);
     }
 };
 
@@ -623,6 +644,8 @@ int main() {
     // //     }
     // // }
     // // cout << "Repetido mas largo: " << sa.s.substr(start_idx, max_lcp) << "\n";
+    // // c) LCP entre cualquier par de sufijos originales
+    // // int lcp_len = sa.get_lcp(1, 3); // LCP entre sufijos que empiezan en índices 1 y 3 del string original
 
     return 0;
 }
