@@ -868,63 +868,272 @@ struct TreeHashing {
 };
 
 // ====================================================================
-// 9. REROOTING DP (DP en todas las direcciones O(N))
+// 9. REROOTING DP GENÉRICO (DP en todas las direcciones O(N))
 // ====================================================================
-// Resuelve problemas donde se necesita calcular la respuesta considerando
-// cada nodo como la raíz del árbol en O(N).
-// Ejemplo implementado: Suma de distancias a todos los demás nodos (Tree
-// Distances II).
+// Usa precalculo de prefijos y sufijos para evitar la necesidad de 
+// operaciones inversas (como restas). Funciona con max, min, suma, etc.
+// Ejemplo implementado: Máxima distancia a cualquier nodo (Tree Distances I)
+
+struct State {
+    ll val;
+    // Puedes añadir más variables si el estado es complejo (ej. tamaño)
+};
+
 struct RerootingDP {
-  int n;
-  vector<vector<int>> adj;
-  vector<ll> sz, dp_down, ans;
+    int n;
+    vector<vector<int>> adj;
+    vector<State> dp_down, ans;
 
-  RerootingDP(int _n) : n(_n) {
-    adj.resize(n + 1);
-    sz.assign(n + 1, 0);
-    dp_down.assign(n + 1, 0);
-    ans.assign(n + 1, 0);
-  }
+    // --- 1. DEFINIR ESTADO NEUTRO ---
+    const State NEUTRAL = {0}; 
 
-  void add_edge(int u, int v) {
-    adj[u].push_back(v);
-    adj[v].push_back(u);
-  }
+    // --- 2. COMBINAR DOS SUBÁRBOLES HERMANOS ---
+    State merge(State a, State b) {
+        return {max(a.val, b.val)}; 
+    }
 
-  // Paso 1: DP abajo (Bottom-up)
-  void dfs_down(int u, int p = 0) {
-    sz[u] = 1;
-    dp_down[u] = 0;
-    for (int v : adj[u]) {
-      if (v != p) {
-        dfs_down(v, u);
-        sz[u] += sz[v];
-        dp_down[u] += dp_down[v] + sz[v];
+    // --- 3. TRANSICIÓN POR ARISTA (de 'v' hacia 'u') ---
+    State extend(State child_state, int v, int u) {
+        return {child_state.val + 1}; // Ej: sumar 1 a la distancia
+    }
+
+    // --- 4. CONTRIBUCIÓN DEL PROPIO NODO (Opcional) ---
+    State finalize(State total_state, int u) {
+        return total_state; 
+    }
+
+    RerootingDP(int _n) : n(_n) {
+        adj.resize(n + 1);
+        dp_down.assign(n + 1, NEUTRAL);
+        ans.assign(n + 1, NEUTRAL);
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    void dfs_down(int u, int p) {
+        State cur = NEUTRAL;
+        for (int v : adj[u]) {
+            if (v == p) continue;
+            dfs_down(v, u);
+            cur = merge(cur, extend(dp_down[v], v, u));
+        }
+        dp_down[u] = finalize(cur, u);
+    }
+
+    void dfs_reroot(int u, int p, State state_from_parent) {
+        vector<int> children;
+        for (int v : adj[u]) {
+            if (v != p) children.push_back(v);
+        }
+        int k = children.size();
+        
+        // Precalcular prefijos y sufijos de los estados de los hijos
+        vector<State> pref(k + 1, NEUTRAL), suff(k + 1, NEUTRAL);
+        for (int i = 0; i < k; i++) {
+            int v = children[i];
+            pref[i + 1] = merge(pref[i], extend(dp_down[v], v, u));
+        }
+        for (int i = k - 1; i >= 0; i--) {
+            int v = children[i];
+            suff[i] = merge(suff[i + 1], extend(dp_down[v], v, u));
+        }
+
+        // La respuesta global de 'u' incluye todos sus hijos + su padre
+        ans[u] = finalize(merge(pref[k], state_from_parent), u);
+
+        // Mover la raíz hacia cada hijo
+        for (int i = 0; i < k; i++) {
+            int v = children[i];
+            
+            // Unir todos los hijos EXCEPTO 'v'
+            State outside_v = merge(pref[i], suff[i + 1]);
+            
+            // Añadir el padre a ese estado externo
+            outside_v = merge(outside_v, state_from_parent);
+            
+            // Propagar el nuevo estado hacia abajo como si 'u' fuera hijo de 'v'
+            State next_parent_state = extend(finalize(outside_v, u), u, v);
+            dfs_reroot(v, u, next_parent_state);
+        }
+    }
+
+    vector<State> solve(int root = 1) {
+        dfs_down(root, 0);
+        dfs_reroot(root, 0, NEUTRAL);
+        return ans;
+    }
+};
+
+
+// ====================================================================
+// 10. FAST LCA EN O(1) (Euler Tour + Sparse Table)
+// ====================================================================
+// Responde consultas de Ancestro Común Más Bajo en O(1) estricto tras
+// un preprocesamiento en O(N log N). Indispensable cuando Q >= 10^6.
+template <typename T = ll> struct FastLCA {
+  int n, timer;
+  vector<int> tin, euler, euler_depth, log_table;
+  vector<vector<int>> st;
+  const Tree<T> &tree;
+
+  FastLCA(const Tree<T> &_tree) : tree(_tree) {
+    n = tree.n;
+    tin.assign(n + 1, 0);
+    euler.reserve(2 * n);
+    euler_depth.reserve(2 * n);
+    timer = 0;
+
+    auto dfs = [&](auto &self, int u, int p, int d) -> void {
+      tin[u] = timer++;
+      euler.push_back(u);
+      euler_depth.push_back(d);
+      for (auto &edge : tree.adj[u]) {
+        int v = edge.to;
+        if (v != p) {
+          self(self, v, u, d + 1);
+          euler.push_back(u);
+          euler_depth.push_back(d);
+          timer++;
+        }
+      }
+    };
+    dfs(dfs, tree.root, 0, 0);
+
+    int m = euler.size();
+    log_table.assign(m + 1, 0);
+    for (int i = 2; i <= m; i++) {
+      log_table[i] = log_table[i / 2] + 1;
+    }
+
+    int K = log_table[m] + 1;
+    st.assign(K, vector<int>(m));
+    for (int i = 0; i < m; i++) {
+      st[0][i] = i; // Guardamos índices de Euler, no profundidades
+    }
+
+    for (int i = 1; i < K; i++) {
+      for (int j = 0; j + (1 << i) <= m; j++) {
+        int left = st[i - 1][j];
+        int right = st[i - 1][j + (1 << (i - 1))];
+        st[i][j] = (euler_depth[left] < euler_depth[right]) ? left : right;
       }
     }
   }
 
-  // Paso 2: Rerooting (Top-down)
-  void dfs_reroot(int u, int p = 0) {
-    for (int v : adj[u]) {
-      if (v != p) {
-        // Al mover la raíz de u hacia v:
-        // Los nodos en el subárbol de v están 1 paso más cerca (- sz[v])
-        // El resto de los nodos (n - sz[v]) están 1 paso más lejos (+ (n -
-        // sz[v]))
-        ans[v] = ans[u] - sz[v] + (n - sz[v]);
-        dfs_reroot(v, u);
-      }
-    }
+  // Retorna el Ancestro Común Más Bajo en O(1)
+  int lca(int u, int v) {
+    int l = tin[u], r = tin[v];
+    if (l > r) swap(l, r);
+    int i = log_table[r - l + 1];
+    int left = st[i][l];
+    int right = st[i][r - (1 << i) + 1];
+    return euler_depth[left] < euler_depth[right] ? euler[left] : euler[right];
   }
 
-  vector<ll> solve(int root = 1) {
-    dfs_down(root);
-    ans[root] = dp_down[root];
-    dfs_reroot(root);
+  // Distancia en número de aristas en O(1) usando el depth original del árbol
+  int dist_edges(int u, int v) {
+    return tree.depth[u] + tree.depth[v] - 2 * tree.depth[lca(u, v)];
+  }
+};
+
+// ====================================================================
+// 11. MO'S ALGORITHM EN CAMINOS DE ÁRBOLES (Aplanamiento 2N)
+// ====================================================================
+// Resuelve consultas offline en caminos en O((N+Q)*sqrt(N)).
+// Ideal cuando las consultas son estáticas y las transiciones (add/rem)
+// se pueden hacer en O(1).
+struct MoTreeQuery {
+  int l, r, lca, id;
+  int block_size;
+
+  bool operator<(const MoTreeQuery &other) const {
+    int b1 = l / block_size;
+    int b2 = other.l / block_size;
+    if (b1 != b2) return b1 < b2;
+    return (b1 & 1) ? (r < other.r) : (r > other.r); // Optimización Even/Odd
+  }
+};
+
+template <typename T = ll> struct MoOnTrees {
+  int n, timer;
+  vector<int> tin, tout, euler;
+  vector<bool> in_path;
+  ll current_ans; // Ajustar tipo según el problema
+  
+  MoOnTrees(int _n) : n(_n), timer(0), current_ans(0) {
+    tin.assign(n + 1, 0);
+    tout.assign(n + 1, 0);
+    euler.assign(2 * n + 1, 0);
+    in_path.assign(n + 1, false);
+  }
+
+  // 1. Generar aplanamiento 2N
+  void dfs_euler(int u, int p, const Tree<T> &tree) {
+    tin[u] = ++timer;
+    euler[timer] = u;
+    for (auto &edge : tree.adj[u]) {
+      int v = edge.to;
+      if (v != p) dfs_euler(v, u, tree);
+    }
+    tout[u] = ++timer;
+    euler[timer] = u;
+  }
+
+  // 2. Transición O(1)
+  void toggle(int u) {
+    if (in_path[u]) {
+      // TODO: Lógica para REMOVER el nodo 'u' de la respuesta local
+      // ej: if (--freq[color[u]] == 0) current_ans--;
+    } else {
+      // TODO: Lógica para AÑADIR el nodo 'u' a la respuesta local
+      // ej: if (++freq[color[u]] == 1) current_ans++;
+    }
+    in_path[u] = !in_path[u];
+  }
+
+  // 3. Procesar las consultas
+  vector<ll> solve(vector<pair<int, int>> &raw_queries, FastLCA<T> &fast_lca) {
+    int q = raw_queries.size();
+    int b_size = max(1, (int)(2 * n / sqrt(max(1, q))));
+    vector<MoTreeQuery> queries;
+    queries.reserve(q);
+
+    for (int i = 0; i < q; i++) {
+      int u = raw_queries[i].first;
+      int v = raw_queries[i].second;
+      if (tin[u] > tin[v]) swap(u, v);
+
+      int anc = fast_lca.lca(u, v);
+      if (anc == u) {
+        queries.push_back({tin[u], tin[v], 0, i, b_size});
+      } else {
+        queries.push_back({tout[u], tin[v], anc, i, b_size});
+      }
+    }
+
+    sort(queries.begin(), queries.end());
+    vector<ll> ans(q);
+    int curr_l = 1, curr_r = 0;
+
+    for (auto &mq : queries) {
+      while (curr_l > mq.l) toggle(euler[--curr_l]);
+      while (curr_r < mq.r) toggle(euler[++curr_r]);
+      while (curr_l < mq.l) toggle(euler[curr_l++]);
+      while (curr_r > mq.r) toggle(euler[curr_r--]);
+
+      if (mq.lca != 0) toggle(mq.lca); // Añadir LCA temporalmente
+      
+      ans[mq.id] = current_ans;
+      
+      if (mq.lca != 0) toggle(mq.lca); // Remover LCA
+    }
     return ans;
   }
 };
+
 
 int main() {
   ios_base::sync_with_stdio(false);
