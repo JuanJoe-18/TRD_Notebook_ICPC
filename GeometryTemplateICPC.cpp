@@ -438,6 +438,46 @@ vector<Point<ld>> halfplane_intersection(vector<Halfplane>& H) {
     return clean_poly;
 }
 
+struct Point3D {
+    double x, y, z;
+    Point3D() : x(0), y(0), z(0) {}
+    Point3D(double x, double y, double z) : x(x), y(y), z(z) {}
+
+    Point3D operator+(const Point3D& p) const { return Point3D(x+p.x, y+p.y, z+p.z); }
+    Point3D operator-(const Point3D& p) const { return Point3D(x-p.x, y-p.y, z-p.z); }
+    Point3D operator*(double c) const { return Point3D(x*c, y*c, z*c); }
+    Point3D operator/(double c) const { return Point3D(x/c, y/c, z/c); }
+
+    double dot(const Point3D& p) const { return x*p.x + y*p.y + z*p.z; }
+    Point3D cross(const Point3D& p) const {
+        return Point3D(y*p.z - z*p.y, z*p.x - x*p.z, x*p.y - y*p.x);
+    }
+    double length() const { return sqrt(dot(*this)); }
+    Point3D unit() const { return *this / length(); }
+};
+
+// Distancia de un punto P a un plano definido por un punto A y una normal N
+double dist_point_plane(Point3D p, Point3D a, Point3D n) {
+    return abs((p - a).dot(n.unit()));
+}
+
+// Distancia de punto P a una línea definida por puntos A y B
+double dist_point_line(Point3D p, Point3D a, Point3D b) {
+    return (p - a).cross(b - a).length() / (b - a).length();
+}
+
+// Intersección Línea-Plano (Línea pasa por L1, L2. Plano por P con normal N)
+Point3D line_plane_intersect(Point3D L1, Point3D L2, Point3D P, Point3D N) {
+    Point3D u = L2 - L1;
+    double dot = N.dot(u);
+    if (abs(dot) > EPS) { // No son paralelos
+        double w = (P - L1).dot(N) / dot;
+        return L1 + u * w;
+    }
+    return Point3D(1e9, 1e9, 1e9); // Paralelos
+}
+
+
 // Nota para Union de Rectángulos / Area: requiere un Segment Tree
 // que maneje Range Sum (Active Length) con la compresión de coordenadas Y.
 

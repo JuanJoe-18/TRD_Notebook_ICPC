@@ -647,6 +647,68 @@ struct BipartiteMatcher {
 };
 
 // ==========================================
+// EMPAREJAMIENTO BIPARTITO (Kuhn's Algorithm) O()
+// ==========================================
+struct HopcroftKarp {
+    int n, m;
+    vector<vector<int>> adj;
+    vector<int> pairU, pairV, dist;
+    const int INF = 1e9;
+
+    HopcroftKarp(int n, int m) : n(n), m(m), adj(n + 1), pairU(n + 1, 0), pairV(m + 1, 0), dist(n + 1) {}
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v); // u en [1..n], v en [1..m]
+    }
+
+    bool bfs() {
+        queue<int> q;
+        for (int u = 1; u <= n; u++) {
+            if (pairU[u] == 0) { dist[u] = 0; q.push(u); } 
+            else { dist[u] = INF; }
+        }
+        dist[0] = INF;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            if (dist[u] < dist[0]) {
+                for (int v : adj[u]) {
+                    if (dist[pairV[v]] == INF) {
+                        dist[pairV[v]] = dist[u] + 1;
+                        q.push(pairV[v]);
+                    }
+                }
+            }
+        }
+        return dist[0] != INF;
+    }
+
+    bool dfs(int u) {
+        if (u != 0) {
+            for (int v : adj[u]) {
+                if (dist[pairV[v]] == dist[u] + 1 && dfs(pairV[v])) {
+                    pairV[v] = u;
+                    pairU[u] = v;
+                    return true;
+                }
+            }
+            dist[u] = INF;
+            return false;
+        }
+        return true;
+    }
+
+    int max_matching() {
+        int res = 0;
+        while (bfs()) {
+            for (int u = 1; u <= n; u++) {
+                if (pairU[u] == 0 && dfs(u)) res++;
+            }
+        }
+        return res;
+    }
+};
+
+// ==========================================
 // PUENTES, PUNTOS DE ARTICULACIÓN Y BRIDGE TREE
 // ==========================================
 struct BridgeTree {
@@ -835,6 +897,57 @@ struct MCMF {
         return {flow, cost};
     }
 };
+
+struct DominatorTree {
+    int n, t;
+    vector<vector<int>> adj, rev, dom;
+    vector<int> dfn, id, p, sdom, idom, dsu, best;
+
+    DominatorTree(int n) : n(n), t(0), adj(n + 1), rev(n + 1), dom(n + 1), 
+                           dfn(n + 1, 0), id(n + 1), p(n + 1), sdom(n + 1), 
+                           idom(n + 1), dsu(n + 1), best(n + 1) {}
+
+    void add_edge(int u, int v) { adj[u].push_back(v); }
+
+    void dfs(int u) {
+        dfn[u] = ++t; id[t] = u;
+        sdom[t] = best[t] = dsu[t] = t;
+        for (int v : adj[u]) {
+            if (!dfn[v]) { dfs(v); p[dfn[v]] = dfn[u]; }
+            rev[dfn[v]].push_back(dfn[u]);
+        }
+    }
+
+    int find(int x) {
+        if (x == dsu[x]) return x;
+        int y = find(dsu[x]);
+        if (sdom[best[x]] > sdom[best[dsu[x]]]) best[x] = best[dsu[x]];
+        return dsu[x] = y;
+    }
+
+    void build(int root) {
+        dfs(root);
+        vector<vector<int>> bkt(n + 1);
+        for (int i = t; i >= 2; i--) {
+            for (int u : rev[i]) {
+                find(u);
+                if (sdom[best[u]] < sdom[i]) sdom[i] = sdom[best[u]];
+            }
+            bkt[sdom[i]].push_back(i);
+            dsu[i] = p[i];
+            for (int u : bkt[p[i]]) {
+                find(u);
+                idom[u] = (sdom[best[u]] == sdom[u]) ? sdom[u] : best[u];
+            }
+            bkt[p[i]].clear();
+        }
+        for (int i = 2; i <= t; i++) {
+            if (idom[i] != sdom[i]) idom[i] = idom[idom[i]];
+            dom[id[idom[i]]].push_back(id[i]);
+        }
+    }
+};
+
 
 int main() {
     ios_base::sync_with_stdio(0); cin.tie(0);

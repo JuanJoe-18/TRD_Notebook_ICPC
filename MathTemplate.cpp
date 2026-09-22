@@ -14,6 +14,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 typedef long long ll;
+using u64 = uint64_t;
+using u128 = __uint128_t;
 
 const ll MOD = 1e9 + 7;
 const double PI = acos(-1.0);
@@ -207,6 +209,45 @@ namespace MathAlgo {
         return result;
     }
 
+    void ntt(vector<ll> &a, bool invert) {
+        int n = a.size();
+        for (int i = 1, j = 0; i < n; i++) {
+            int bit = n >> 1;
+            for (; j & bit; bit >>= 1) j ^= bit;
+            j ^= bit;
+            if (i < j) swap(a[i], a[j]);
+        }
+        for (int len = 2; len <= n; len <<= 1) {
+            ll wlen = modpow(root, (MOD - 1) / len);
+            if (invert) wlen = modinv(wlen);
+            for (int i = 0; i < n; i += len) {
+                ll w = 1;
+                for (int j = 0; j < len / 2; j++) {
+                    ll u = a[i+j], v = a[i+j+len/2] * w % MOD;
+                    a[i+j] = u + v < MOD ? u + v : u + v - MOD;
+                    a[i+j+len/2] = u - v >= 0 ? u - v : u - v + MOD;
+                    w = w * wlen % MOD;
+                }
+            }
+        }
+        if (invert) {
+            ll n_inv = modinv(n);
+            for (ll &x : a) x = x * n_inv % MOD;
+        }
+    }
+
+    vector<ll> multiply_mod(vector<ll> const& a, vector<ll> const& b) {
+        vector<ll> fa(a.begin(), a.end()), fb(b.begin(), b.end());
+        int n = 1;
+        while (n < a.size() + b.size()) n <<= 1;
+        fa.resize(n); fb.resize(n);
+        ntt(fa, false); ntt(fb, false);
+        for (int i = 0; i < n; i++) fa[i] = fa[i] * fb[i] % MOD;
+        ntt(fa, true);
+        while (fa.size() > 1 && fa.back() == 0) fa.pop_back();
+        return fa;
+    }
+
     /**
      * 9. Teoría de Juegos - Nim (XOR Sum)
      */
@@ -237,6 +278,144 @@ namespace MathAlgo {
         ll den = modinv(r - 1 + m, m);
         return (a % m) * num % m * den % m;
     }
+
+    /**
+     * 11. Matrices
+     */
+    struct Matrix {
+        vector<vector<ll>> mat;
+        int r, c;
+        Matrix(int r, int c) : r(r), c(c), mat(r, vector<ll>(c, 0)) {}
+        
+        static Matrix identity(int n) {
+            Matrix res(n, n);
+            for (int i = 0; i < n; i++) res.mat[i][i] = 1;
+            return res;
+        }
+        
+        Matrix operator*(const Matrix &other) const {
+            Matrix res(r, other.c);
+            for (int i = 0; i < r; i++)
+                for (int k = 0; k < c; k++)
+                    for (int j = 0; j < other.c; j++)
+                        res.mat[i][j] = (res.mat[i][j] + mat[i][k] * other.mat[k][j]) % MOD;
+            return res;
+        }
+        
+        Matrix power(ll p) const {
+            Matrix res = identity(r);
+            Matrix base = *this;
+            while (p > 0) {
+                if (p & 1) res = res * base;
+                base = base * base;
+                p >>= 1;
+            }
+            return res;
+        }
+    };
+
+    vector<ll> berlekamp_massey(vector<ll> s) {
+        vector<ll> C = {1}, B = {1};
+        int L = 0; 
+        ll m = 1, b = 1;
+        for (int i = 0; i < s.size(); i++) {
+            ll d = 0;
+            for (int j = 0; j <= L; j++) d = (d + C[j] * s[i - j]) % MOD;
+            if (d == 0) {
+                m++;
+            } else {
+                vector<ll> T = C;
+                ll c = MOD - d * modpow(b, MOD - 2) % MOD;
+                while (C.size() <= B.size() + m) C.push_back(0);
+                for (int j = 0; j < B.size(); j++) {
+                    C[j + m] = (C[j + m] + c * B[j]) % MOD;
+                }
+                if (2 * L <= i) {
+                    L = i + 1 - L;
+                    B = T;
+                    b = d;
+                    m = 1;
+                } else {
+                    m++;
+                }
+            }
+        }
+        C.resize(L + 1);
+        return C; // Retorna coeficientes C[0]*S[n] + C[1]*S[n-1] ... = 0
+    }
+
+    struct PollardRho {
+        using u64 = uint64_t;
+        using u128 = __uint128_t;
+
+        static u64 modpow(u64 base, u64 exp, u64 mod) {
+            u64 res = 1;
+            base %= mod;
+            while (exp > 0) {
+                if (exp % 2 == 1) res = (u128)res * base % mod;
+                base = (u128)base * base % mod;
+                exp /= 2;
+            }
+            return res;
+        }
+
+        // Test de primalidad determinista para N <= 2^64
+        static bool is_prime(u64 n) {
+            if (n < 2) return false;
+            if (n == 2 || n == 3) return true;
+            if (n % 2 == 0) return false;
+            u64 d = n - 1;
+            int s = 0;
+            while (d % 2 == 0) { d /= 2; s++; }
+            static const u64 bases[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+            for (u64 a : bases) {
+                if (n <= a) break;
+                u64 x = modpow(a, d, n);
+                if (x == 1 || x == n - 1) continue;
+                bool composite = true;
+                for (int r = 1; r < s; r++) {
+                    x = (u128)x * x % n;
+                    if (x == n - 1) { composite = false; break; }
+                }
+                if (composite) return false;
+            }
+            return true;
+        }
+
+        static u64 get_factor(u64 n) {
+            if (n % 2 == 0) return 2;
+            if (is_prime(n)) return n;
+            u64 x = 2, y = 2, d = 1, c = 1;
+            auto f = [&](u64 x, u64 n, u64 c) { return (u64)(((u128)x * x % n + c) % n); };
+            while (d == 1) {
+                x = f(x, n, c);
+                y = f(f(y, n, c), n, c);
+                d = gcd(x > y ? x - y : y - x, n);
+                if (d == n) { 
+                    x = rand() % (n - 2) + 2; 
+                    y = x; 
+                    c = rand() % (n - 1) + 1; 
+                    d = 1; 
+                }
+            }
+            return d;
+        }
+
+        static void _factorize(u64 n, map<u64, int>& factors) {
+            if (n == 1) return;
+            if (is_prime(n)) { factors[n]++; return; }
+            u64 divisor = get_factor(n);
+            _factorize(divisor, factors);
+            _factorize(n / divisor, factors);
+        }
+
+        // API Principal
+        static map<u64, int> factorize(u64 n) {
+            map<u64, int> factors;
+            _factorize(n, factors);
+            return factors;
+        }
+    };
 
     /*
     =============================================
@@ -340,6 +519,21 @@ int main() {
     //     cout << "No hay solucion\n";
     // } else {
     //     cout << "Infinitas soluciones\n";
+    // }
+
+    // 7. Pollard Rho - Factorización de números grandes
+    // PollardRho::u64 N = 1000000000000000003ULL * 2ULL; // Un número gigante
+    // Test rápido de primalidad
+    // if (PollardRho::is_prime(N)) {
+        // cout << N << " es primo.\n";
+    // } else {
+        // Uso directo de la API
+        // map<PollardRho::u64, int> factores = PollardRho::factorize(N);
+        
+        // cout << "Factores de " << N << ":\n";
+        // for (auto [primo, potencia] : factores) {
+            // cout << primo << "^" << potencia << "\n";
+        // }
     // }
 
     return 0;
