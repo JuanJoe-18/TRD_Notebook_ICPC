@@ -77,14 +77,35 @@ namespace MathAlgo {
     /**
      * 5. Criba Factorizadora (O(N) precalculo, O(log N) factorización)
      */
+/**
+     * 5. Criba Extendida (Factorización, Möbius, Totiente de Euler)
+     */
     struct Sieve {
-        vector<int> primes, spf;
+        vector<int> primes, spf, mu, phi;
         Sieve(int n) {
             spf.assign(n + 1, 0);
+            mu.assign(n + 1, 0);
+            phi.assign(n + 1, 0);
+            mu[1] = 1; phi[1] = 1;
+            
             for (int i = 2; i <= n; i++) {
-                if (spf[i] == 0) { spf[i] = i; primes.push_back(i); }
+                if (spf[i] == 0) { 
+                    spf[i] = i; 
+                    primes.push_back(i);
+                    mu[i] = -1;
+                    phi[i] = i - 1;
+                }
                 for (int j = 0; j < primes.size() && primes[j] <= spf[i] && i * primes[j] <= n; j++) {
-                    spf[i * primes[j]] = primes[j];
+                    int p = primes[j];
+                    spf[i * p] = p;
+                    if (i % p == 0) {
+                        mu[i * p] = 0;
+                        phi[i * p] = phi[i] * p;
+                        break;
+                    } else {
+                        mu[i * p] = -mu[i];
+                        phi[i * p] = phi[i] * (p - 1);
+                    }
                 }
             }
         }
@@ -417,6 +438,33 @@ namespace MathAlgo {
         }
     };
 
+    /**
+     * 12. Teorema de Lucas (nCr mod P para N, R gigantes y P primo pequeño <= 10^6)
+     * Reutiliza la estructura Combinatorics para el cálculo de los dígitos en base P.
+     */
+    struct Lucas {
+        Combinatorics comb;
+        ll P;
+        
+        // Inicializa la combinatoria hasta P-1 usando el módulo P
+        Lucas(ll p) : P(p), comb(p - 1, p) {}
+        
+        // Teorema de Lucas recursivo para N, R hasta 10^18
+        ll solve(ll n, ll r) {
+            if (r < 0 || r > n) return 0;
+            if (r == 0) return 1;
+            
+            ll ni = n % P;
+            ll ri = r % P;
+            
+            // Si el dígito inferior es mayor, el combinatorio se hace 0
+            if (ni < ri) return 0; 
+            
+            // Llamada recursiva multiplicada por el nCr del dígito actual
+            return solve(n / P, r / P) * comb.nCr(ni, ri) % P;
+        }
+    };
+
     /*
     =============================================
     CHEAT SHEET FÓRMULAS RÁPIDAS (EXPLICADAS)
@@ -535,6 +583,12 @@ int main() {
             // cout << primo << "^" << potencia << "\n";
         // }
     // }
+
+    // 8. Teorema de Lucas para combinaciones gigantes
+    // Ejemplo: 10^18 en 5*10^17 módulo 1000003 (que es primo)
+    // MathAlgo::Lucas lucas_solver(1000003);
+    // cout << "Lucas (10^18 en 5*10^17) mod 1000003: " 
+    //      << lucas_solver.solve(1000000000000000000LL, 500000000000000000LL) << "\n";
 
     return 0;
 }

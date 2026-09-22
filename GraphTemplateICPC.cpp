@@ -837,7 +837,7 @@ struct Dinic {
 };
 
 // ==========================================
-// MIN COST MAX FLOW (SPFA-based Successive Shortest Path)
+// MIN COST MAX FLOW (Dijkstra with Potentials)
 // ==========================================
 struct MCMF {
     struct Edge {
@@ -847,51 +847,93 @@ struct MCMF {
     };
     int n;
     vector<vector<Edge>> adj;
-    vector<ll> dist;
+    vector<ll> dist, pot;
     vector<int> p_node, p_edge;
-    vector<bool> in_queue;
+    const ll LINF = 1e18; // Asegúrate de tener esta constante
 
     MCMF(int _n) : n(_n) {
-        adj.resize(n + 1); dist.resize(n + 1);
-        p_node.resize(n + 1); p_edge.resize(n + 1); in_queue.resize(n + 1);
+        adj.resize(n + 1); dist.resize(n + 1); pot.resize(n + 1, 0);
+        p_node.resize(n + 1); p_edge.resize(n + 1);
     }
+
     void add_edge(int u, int v, ll cap, ll cost) {
         adj[u].push_back({v, cap, 0, cost, (int)adj[v].size()});
         adj[v].push_back({u, 0, 0, -cost, (int)adj[u].size() - 1});
     }
-    bool spfa(int s, int t) {
+
+    // Inicializa potenciales. Solo necesario si el grafo inicial tiene aristas negativas.
+    // Si sabes que todos los costos iniciales son >= 0, puedes comentar la llamada en solve().
+    void init_potentials(int s) {
+        fill(pot.begin(), pot.end(), LINF);
+        pot[s] = 0;
+        bool changed = true;
+        for (int i = 0; i < n && changed; i++) {
+            changed = false;
+            for (int u = 0; u <= n; u++) {
+                if (pot[u] == LINF) continue;
+                for (auto& e : adj[u]) {
+                    if (e.cap > 0 && pot[e.to] > pot[u] + e.cost) {
+                        pot[e.to] = pot[u] + e.cost;
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    bool dijkstra(int s, int t) {
         fill(dist.begin(), dist.end(), LINF);
-        fill(in_queue.begin(), in_queue.end(), false);
-        queue<int> q; dist[s] = 0; q.push(s); in_queue[s] = true;
-        while (!q.empty()) {
-            int u = q.front(); q.pop(); in_queue[u] = false;
+        priority_queue<pair<ll, int>, vector<pair<ll, int>>, greater<pair<ll, int>>> pq;
+        
+        dist[s] = 0;
+        pq.push({0, s});
+        
+        while (!pq.empty()) {
+            auto [d, u] = pq.top(); pq.pop();
+            
+            if (d > dist[u]) continue;
+            
             for (int i = 0; i < adj[u].size(); i++) {
                 auto& e = adj[u][i];
-                if (e.cap - e.flow > 0 && dist[e.to] > dist[u] + e.cost) {
-                    dist[e.to] = dist[u] + e.cost;
+                // Costo reducido con potenciales de Johnson
+                ll reduced_cost = e.cost + pot[u] - pot[e.to];
+                
+                if (e.cap - e.flow > 0 && dist[e.to] > dist[u] + reduced_cost) {
+                    dist[e.to] = dist[u] + reduced_cost;
                     p_node[e.to] = u; p_edge[e.to] = i;
-                    if (!in_queue[e.to]) {
-                        q.push(e.to); in_queue[e.to] = true;
-                    }
+                    pq.push({dist[e.to], e.to});
                 }
             }
         }
         return dist[t] != LINF;
     }
+
     pair<ll, ll> solve(int s, int t) {
+        init_potentials(s); 
         ll flow = 0, cost = 0;
-        while (spfa(s, t)) {
-            ll push = LINF; int curr = t;
+        
+        while (dijkstra(s, t)) {
+            // Actualización del potencial de los nodos
+            for (int i = 0; i <= n; i++) {
+                if (dist[i] != LINF) pot[i] += dist[i];
+            }
+            
+            ll push = LINF; 
+            int curr = t;
             while (curr != s) {
                 int p = p_node[curr], idx = p_edge[curr];
                 push = min(push, adj[p][idx].cap - adj[p][idx].flow);
                 curr = p;
             }
-            flow += push; curr = t;
+            
+            flow += push; 
+            curr = t;
             while (curr != s) {
                 int p = p_node[curr], idx = p_edge[curr], rev_idx = adj[p][idx].rev;
-                adj[p][idx].flow += push; adj[curr][rev_idx].flow -= push;
-                cost += push * adj[p][idx].cost; curr = p;
+                adj[p][idx].flow += push; 
+                adj[curr][rev_idx].flow -= push;
+                cost += push * adj[p][idx].cost; 
+                curr = p;
             }
         }
         return {flow, cost};
