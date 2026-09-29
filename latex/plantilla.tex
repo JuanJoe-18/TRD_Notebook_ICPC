@@ -1,0 +1,87 @@
+\documentclass[9pt,landscape]{article}
+% Nota: xelatex/lualatex -> Consolas (fontspec). pdflatex -> Inconsolata (fallback).
+% Compilar: xelatex -output-directory=latex latex/plantilla.tex  (o pdflatex)
+% Compilar dos veces para que el indice de contenidos resuelva las paginas.
+\usepackage[landscape,left=0.7in,right=0.3in,top=0.55in,bottom=0.45in,headheight=14pt,headsep=8pt]{geometry}
+\usepackage{multicol}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+
+\ifdefined\XeTeXrevision
+  \usepackage{fontspec}
+  \setmonofont{Consolas}
+\else
+  \usepackage{inconsolata}
+\fi
+
+\definecolor{codegray}{gray}{0.5}
+\definecolor{docblue}{RGB}{15,55,120}
+\lstset{
+  language=C++,
+  basicstyle=\fontsize{7.5}{8.5}\selectfont\ttfamily,
+  commentstyle=\color{codegray}\itshape,
+  keywordstyle=\color{blue},
+  stringstyle=\color{red},
+  tabsize=2,
+  showstringspaces=false,
+  breaklines=true,
+  frame=none,
+  numbers=none,
+  aboveskip=0pt,
+  belowskip=0pt,
+  columns=flexible,
+  keepspaces=true,
+  mathescape=true, % $...$ dentro del listing se interpreta como matematica
+  morecomment=[s][\color{docblue}\itshape]{/**}{*/}, % bloques doc en azul (misma fuente que el codigo)
+  literate={'$'}{'{\$}'}{3} % dolar literal en char (manacher)
+           {"$"}{"{\$}"}{3} % dolar literal en strings (suffix array, eertree)
+}
+
+% Encabezado estilo ICPC: universidad/equipo arriba a la izquierda, pagina arriba a la derecha.
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize Icesi --- SQLazo}
+\fancyhead[R]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% Indice compacto: un solo parrafo "Titulo (pagina), ..." con las paginas reales.
+\makeatletter
+\renewcommand*\l@section[2]{#1 (#2), }
+\makeatother
+
+\newcommand{\templatefile}[2]{%
+  \addcontentsline{toc}{section}{#1}%
+  \begin{center}\textbf{\texttt{#1}}\end{center}%
+  \lstinputlisting{../#2}%
+}
+
+\begin{document}
+\begin{center}{\Large\textbf{ICPC TRD}}\end{center}
+% Indice compacto en un solo parrafo.
+{\small\makeatletter\@starttoc{toc}\makeatother}
+\begin{multicols}{3}
+
+\templatefile{Main}{src/main.cpp}
+
+\templatefile{Graphs}{include/graph.hpp}
+
+\templatefile{Trees}{include/tree.hpp}
+
+\templatefile{Range Queries}{include/rq.hpp}
+
+\templatefile{Strings}{include/string.hpp}
+
+\templatefile{Dynamic Programming}{include/dp.hpp}
+
+\templatefile{Mathematics}{include/math.hpp}
+
+\templatefile{Geometry}{include/geometry.hpp}
+
+\templatefile{Bit Operations}{include/bits.hpp}
+
+\templatefile{Extra}{include/extra.hpp}
+
+\end{multicols}
+\end{document}
