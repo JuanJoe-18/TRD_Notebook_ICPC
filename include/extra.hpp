@@ -99,3 +99,20 @@ struct BitsetReachability {
   }
   bool can_reach(int u, int v) { return reachable[u][v]; }
 };
+
+/**
+ * Uso[0]: auto [vals, ids] = compress_coords(a);
+ * Compresion de coordenadas: ordena y elimina duplicados (sort + unique) y mapea cada valor a su rango consecutivo $0..K-1$.
+ * Indexación: ids 0-indexados en orden creciente de valor.
+ * Complejidad: $O(N \log N)$ tiempo, $O(N)$ espacio.
+ */
+template<typename T>
+pair<vector<T>, vector<int>> compress_coords(const vector<T>& a) {
+  vector<T> vals = a;
+  sort(all(vals));
+  vals.erase(unique(all(vals)), vals.end());
+  vector<int> ids(a.size());
+  for (int i = 0; i < (int)a.size(); i++)
+    ids[i] = lower_bound(all(vals), a[i]) - vals.begin();
+  return {vals, ids};
+}
