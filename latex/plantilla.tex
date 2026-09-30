@@ -1,8 +1,8 @@
-\documentclass[9pt,landscape]{article}
-% Nota: xelatex/lualatex -> Consolas (fontspec). pdflatex -> Inconsolata (fallback).
+\documentclass[10pt]{article}
+% Nota: xelatex/lualatex -> Space Mono (fontspec). pdflatex -> Inconsolata (fallback).
 % Compilar: xelatex -output-directory=latex latex/plantilla.tex  (o pdflatex)
 % Compilar dos veces para que el indice de contenidos resuelva las paginas.
-\usepackage[landscape,left=0.7in,right=0.3in,top=0.55in,bottom=0.45in,headheight=14pt,headsep=8pt]{geometry}
+\usepackage[letterpaper,left=0.5in,right=0.5in,top=0.6in,bottom=0.5in,headheight=14pt,headsep=8pt]{geometry}
 \usepackage{multicol}
 \usepackage{listings}
 \usepackage{xcolor}
@@ -11,7 +11,7 @@
 
 \ifdefined\XeTeXrevision
   \usepackage{fontspec}
-  \setmonofont{Consolas}
+  \setmonofont{Space Mono}
 \else
   \usepackage{inconsolata}
 \fi
@@ -20,9 +20,9 @@
 \definecolor{docblue}{RGB}{15,55,120}
 \lstset{
   language=C++,
-  basicstyle=\fontsize{7.5}{8.5}\selectfont\ttfamily,
+  basicstyle=\fontsize{8.5}{9.5}\selectfont\ttfamily,
   commentstyle=\color{codegray}\itshape,
-  keywordstyle=\color{blue},
+  keywordstyle=\color{blue}\bfseries,
   stringstyle=\color{red},
   tabsize=2,
   showstringspaces=false,
@@ -34,7 +34,7 @@
   columns=flexible,
   keepspaces=true,
   mathescape=true, % $...$ dentro del listing se interpreta como matematica
-  morecomment=[s][\color{docblue}\itshape]{/**}{*/}, % bloques doc en azul (misma fuente que el codigo)
+  morecomment=[s][\color{docblue}\bfseries\itshape]{/**}{*/}, % bloques doc en azul y bold
   literate={'$'}{'{\$}'}{3} % dolar literal en char (manacher)
            {"$"}{"{\$}"}{3} % dolar literal en strings (suffix array, eertree)
 }
@@ -61,7 +61,7 @@
 \begin{center}{\Large\textbf{ICPC TRD}}\end{center}
 % Indice compacto en un solo parrafo.
 {\small\makeatletter\@starttoc{toc}\makeatother}
-\begin{multicols}{3}
+\begin{multicols}{2}
 
 \templatefile{Main}{src/main.cpp}
 

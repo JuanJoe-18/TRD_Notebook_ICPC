@@ -85,7 +85,7 @@ template<typename T> int point_in_polygon(const vector<Point<T>>& poly, Point<T>
 
 /**
  * Uso: auto hull = convex_hull(puntos);
- * Cascara convexa (monotonic chain) en sentido antihorario, sin puntos colineales en el borde.
+ * Cascara convexa (monotonic chain) en sentido antihorario, preservando puntos colineales en el borde.
  * Complejidad: $O(N \log N)$.
  */
 template<typename T> vector<Point<T>> convex_hull(vector<Point<T>> pts) {
@@ -94,11 +94,11 @@ template<typename T> vector<Point<T>> convex_hull(vector<Point<T>> pts) {
   vector<Point<T>> h(2 * n);
   sort(all(pts));
   for (int i = 0; i < n; i++) {
-    while (k >= 2 && cross(h[k - 2], h[k - 1], pts[i]) <= 0) k--;
+    while (k >= 2 && cross(h[k - 2], h[k - 1], pts[i]) < 0) k--;
     h[k++] = pts[i];
   }
   for (int i = n - 2, t = k + 1; i >= 0; i--) {
-    while (k >= t && cross(h[k - 2], h[k - 1], pts[i]) <= 0) k--;
+    while (k >= t && cross(h[k - 2], h[k - 1], pts[i]) < 0) k--;
     h[k++] = pts[i];
   }
   h.resize(k - 1);
