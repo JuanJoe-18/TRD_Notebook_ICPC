@@ -70,40 +70,30 @@ template <typename T = ll> struct Graph {
 };
 
 /**
- * Uso[1]: auto dist = Dijkstra<ll>().run(g, src); auto [dist, parent] = run_with_parents(g, src);
- * Caminos minimos desde un origen con pesos no negativos; opcionalmente reconstruye el camino.
- * Complejidad: $O(E \log V)$.
+ * Uso[1]: Dijkstra<ll> dih; 
+ * auto [ dist, par ] = dih.run(g, src, invalid_edges);
+ * auto path = dih.restore_path(target);
+ * Caminos minimos desde un origen con pesos no negativos.
+ * Complejidad: O(E log V).
  */
 template <typename T = ll> struct Dijkstra {
-  // O(E log V)
-  vector<T> run(const Graph<T>& g, int src) {
-    vector<T> dist(g.n + 1, LINF);
+  vector<T> dist;
+  vi p;
+  pair<vector<T>, vi> run(const Graph<T>& g, int src, const vector<bool>& invalid_edges = {}) {
+    dist.assign(g.n + 1, LINF);
+    p.assign(g.n + 1, -1);
     priority_queue<pair<T, int>, vector<pair<T, int>>, greater<>> pq;
     dist[src] = 0; pq.push({0, src});
+    
     while (!pq.empty()) {
       auto [d, u] = pq.top(); pq.pop();
       if (d > dist[u]) continue;
-      for (int id : g.adj[u]) {
-        auto& e = g.edges[id];
-        if (dist[u] + e.weight < dist[e.to]) {
-          dist[e.to] = dist[u] + e.weight;
-          pq.push({dist[e.to], e.to});
-        }
-      }
-    }
-    return dist;
-  }
-  // Retorna {distancias, padres} para reconstruir el camino
-  pair<vector<T>, vi> run_with_parents(const Graph<T>& g, int src) {
-    vector<T> dist(g.n + 1, LINF);
-    vi p(g.n + 1, -1);
-    priority_queue<pair<T, int>, vector<pair<T, int>>, greater<>> pq;
-    dist[src] = 0; pq.push({0, src});
-    while (!pq.empty()) {
-      auto [d, u] = pq.top(); pq.pop();
-      if (d > dist[u]) continue;
-      for (int id : g.adj[u]) {
-        auto& e = g.edges[id];
+      
+      for (int idx : g.adj[u]) {
+        auto& e = g.edges[idx];
+        
+        if (!invalid_edges.empty() && e.id != -1 && invalid_edges[e.id]) continue;
+        
         if (dist[u] + e.weight < dist[e.to]) {
           dist[e.to] = dist[u] + e.weight;
           p[e.to] = u;
@@ -113,8 +103,9 @@ template <typename T = ll> struct Dijkstra {
     }
     return {dist, p};
   }
-  static vi restore_path(int target, const vi& p) {
+  vi restore_path(int target) {
     vi path;
+    if (dist.empty() || dist[target] == LINF) return path; 
     for (int v = target; v != -1; v = p[v]) path.pb(v);
     reverse(all(path));
     return path;

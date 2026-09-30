@@ -17,15 +17,28 @@ int main() {
 
   // Dijkstra + camino
   Graph<ll> g(4);
-  g.add_directed_edge(1, 2, 10);
-  g.add_directed_edge(2, 3, 5);
-  g.add_directed_edge(1, 4, 2);
-  g.add_directed_edge(4, 3, 20);
-  auto dist = Dijkstra<ll>().run(g, 1);
+  g.add_directed_edge(1, 2, 10, 0);
+  g.add_directed_edge(2, 3, 5, 1);
+  g.add_directed_edge(1, 4, 2, 2);
+  g.add_directed_edge(4, 3, 20, 3);
+  Dijkstra<ll> dih;
+  auto [dist, par] = dih.run(g, 1);
   CHECK(dist[3] == 15);
-  auto [d2, par] = Dijkstra<ll>().run_with_parents(g, 1);
-  auto path = Dijkstra<ll>::restore_path(3, par);
-  CHECK(d2[3] == 15 && path == (vi{1, 2, 3}));
+  CHECK(dih.restore_path(3) == (vi{1, 2, 3}));
+
+  // invalid_edges: bloquear la arista id 0 (1->2) -> el camino pasa por 1->4->3
+  auto [dist2, par2] = dih.run(g, 1, vector<bool>{true, false, false, false});
+  CHECK(dist2[3] == 22);
+  CHECK(dist2[2] == LINF);
+  CHECK(dih.restore_path(3) == (vi{1, 4, 3}));
+
+  // nodo inalcanzable -> restore_path vacio
+  Graph<ll> g2(3);
+  g2.add_directed_edge(1, 2, 1, 0); // nodo 3 aislado
+  Dijkstra<ll> dih2;
+  dih2.run(g2, 1);
+  CHECK(dih2.restore_path(3).empty());
+  CHECK(dih2.restore_path(2) == (vi{1, 2}));
 
   // BFS 0-1
   Graph<ll> g01(3);
