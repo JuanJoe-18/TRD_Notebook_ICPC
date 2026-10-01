@@ -350,7 +350,8 @@ template <typename T = ll> struct Kruskal {
 
 /**
  * Uso[1]: auto circuito = EulerianCircuit<ll>().find(g, start, undirected);
- * Circuito euleriano dirigido o no dirigido (vacio si no existe).
+ * Camino o circuito euleriano: recorre cada arista exactamente una vez (vacio si no existe).
+ * Un circuito euleriano existe si el grafo es conexo y, en no dirigido, todos los grados son pares, o en dirigido, $in(u) = out(u)$ en cada nodo.
  * Complejidad: $O(V + E)$.
  */
 template <typename T = ll> struct EulerianCircuit {
@@ -383,6 +384,45 @@ template <typename T = ll> struct EulerianCircuit {
     if (circuit.size() != need && !g.edges.empty()) return {};
     return circuit;
   }
+};
+
+/**
+ * Uso[1]: Hamiltonian h(n); h.add_edge(u, v); auto path = h.find_path(); auto cycle = h.find_cycle();
+ * Camino hamiltoniano: visita cada vertice exactamente una vez; si existe, find_cycle devuelve un ciclo (el ultimo nodo conecta con el primero). Vacio si no hay.
+ * Un camino hamiltoniano es NP-completo en general, por eso se resuelve por backtracking.
+ * Indexación: nodos 1-indexados.
+ * Complejidad: $O(N!)$ peor caso, practico para $N \leq 15$.
+ */
+struct Hamiltonian {
+  int n;
+  vector<vi> adj;
+  vector<bool> vis;
+  Hamiltonian(int n) : n(n), adj(n + 1), vis(n + 1, false) {}
+  void add_edge(int u, int v) { adj[u].pb(v); adj[v].pb(u); }
+  bool bt(int u, int cnt, int start, bool cycle, vi& path) {
+    if (cnt == n) {
+      if (!cycle) return true;
+      for (int v : adj[u]) if (v == start) return true;
+      return false;
+    }
+    for (int v : adj[u]) if (!vis[v]) {
+      vis[v] = true; path.pb(v);
+      if (bt(v, cnt + 1, start, cycle, path)) return true;
+      path.pop_back(); vis[v] = false;
+    }
+    return false;
+  }
+  vi find(bool cycle) {
+    for (int s = 1; s <= n; s++) {
+      fill(all(vis), false);
+      vi path = {s};
+      vis[s] = true;
+      if (bt(s, 1, s, cycle, path)) return path;
+    }
+    return {};
+  }
+  vi find_path() { return find(false); }  // camino que usa todos los nodos
+  vi find_cycle() { return find(true); }  // ciclo que usa todos los nodos
 };
 
 /**
@@ -458,21 +498,25 @@ struct FunctionalGraph {
 };
 
 /**
- * Uso[1]: LCA lca(n); lca.build(root, adj); lca.lca(u, v); lca.dist(u, v);
- * Ancestro comun mas bajo y distancia en numero de aristas mediante binary lifting.
+ * Uso[1]: LCA<ll> lca(n); lca.build(root, g); lca.lca(u, v); lca.dist(u, v);
+ * Ancestro comun mas bajo y distancia en numero de aristas mediante binary lifting, construido directamente sobre la estructura Graph.
+ * Indexación: nodos 1-indexados.
  * Complejidad: preproceso $O(N \log N)$, consulta $O(\log N)$.
  */
-struct LCA {
+template <typename T = ll> struct LCA {
   int n, log_n;
   vector<vi> up;
   vi depth;
   LCA(int n, int log_n = 20) : n(n), log_n(log_n), up(n + 1, vi(log_n, 0)), depth(n + 1, 0) {}
-  void dfs(int u, int p, const vector<vi>& adj) {
+  void dfs(int u, int p, const Graph<T>& g) {
     up[u][0] = p;
     for (int j = 1; j < log_n; j++) up[u][j] = up[up[u][j - 1]][j - 1];
-    for (int v : adj[u]) if (v != p) depth[v] = depth[u] + 1, dfs(v, u, adj);
+    for (int id : g.adj[u]) {
+      int v = g.edges[id].to;
+      if (v != p) depth[v] = depth[u] + 1, dfs(v, u, g);
+    }
   }
-  void build(int root, const vector<vi>& adj) { dfs(root, root, adj); }
+  void build(int root, const Graph<T>& g) { dfs(root, root, g); }
   int lca(int u, int v) {
     if (depth[u] < depth[v]) swap(u, v);
     int k = depth[u] - depth[v];
@@ -520,8 +564,9 @@ struct TwoSat {
 };
 
 /**
- * Uso[1]: BipartiteMatcher bm(n_izq, n_der); bm.add_edge(u, v); bm.max_matching();
- * Emparejamiento maximo bipartito con el algoritmo de Kuhn.
+ * Uso[1]: BipartiteMatcher bm(n_izq, n_der); bm.add_edge(u, v); bm.max_matching(); bm.match_of(v);
+ * Emparejamiento maximo bipartito con el algoritmo de Kuhn; el resultado queda en match_of(v) = vertice izquierdo que empareja a v (o -1).
+ * Indexación: nodos 1-indexados.
  * Complejidad: $O(V \cdot E)$.
  */
 struct BipartiteMatcher {
@@ -545,11 +590,13 @@ struct BipartiteMatcher {
     }
     return ans;
   }
+  int match_of(int v) { return match[v]; } // vertice izquierdo emparejado a v, -1 si v esta libre
 };
 
 /**
- * Uso[1]: HopcroftKarp hk(n_izq, n_der); hk.add_edge(u, v); hk.max_matching();
- * Emparejamiento maximo bipartito con el algoritmo de Hopcroft-Karp.
+ * Uso[1]: HopcroftKarp hk(n_izq, n_der); hk.add_edge(u, v); hk.max_matching(); hk.match_of(v);
+ * Emparejamiento maximo bipartito con Hopcroft-Karp; el resultado queda en match_of(v) = vertice izquierdo que empareja a v (o 0).
+ * Indexación: nodos 1-indexados.
  * Complejidad: $O(E \sqrt{V})$.
  */
 struct HopcroftKarp {
@@ -585,6 +632,7 @@ struct HopcroftKarp {
     while (bfs()) for (int u = 1; u <= n; u++) if (!pairU[u] && dfs(u)) res++;
     return res;
   }
+  int match_of(int v) { return pairV[v]; } // vertice izquierdo emparejado a v, 0 si v esta libre
 };
 /**
  * Uso[0]: MaxClique mc(n); mc.add_edge(u, v); mc.solve();
@@ -609,7 +657,8 @@ struct MaxClique {
 };
 /**
  * Uso[1]: BridgeTree bt(n, num_aristas); bt.add_edge(u, v, id); bt.build();
- * Detecta puentes y puntos de articulacion y construye el arbol de componentes 2-arista-conexas.
+ * Arbol de puentes: detecta puentes (aristas cuya eliminacion desconecta el grafo) y puntos de articulacion, y contrae cada componente 2-arista-conexa en un nodo del arbol resultante (tree_adj).
+ * Indexación: nodos 1-indexados; aristas identificadas por su id.
  * Complejidad: $O(V + E)$.
  */
 struct BridgeTree {
@@ -656,8 +705,9 @@ struct BridgeTree {
 };
 
 /**
- * Uso[0]: Dinic d(n, s, t); d.add_edge(u, v, cap); d.max_flow();
- * Flujo maximo con el algoritmo de Dinic, dirigido o no dirigido.
+ * Uso[0]: Dinic d(n, s, t); d.add_edge(u, v, cap); d.max_flow(); d.restore_path();
+ * Flujo maximo con el algoritmo de Dinic, dirigido o no dirigido; restore_path devuelve un camino $s \to t$ por el que circula flujo positivo.
+ * Indexación: nodos 0-indexados.
  * Complejidad: $O(V^2 E)$ en general, $O(E \sqrt{V})$ en redes unitarias.
  */
 struct Dinic {
@@ -711,6 +761,18 @@ struct Dinic {
       while (ll pushed = dfs(s, LINF)) flow += pushed;
     }
     return flow;
+  }
+  vi restore_path() { // camino s->t por aristas con flujo positivo (vacio si no llega)
+    vi path = {s};
+    int u = s;
+    while (u != t) {
+      bool advanced = false;
+      for (int id : adj[u]) if (edges[id].flow > 0) {
+        u = edges[id].v; path.pb(u); advanced = true; break;
+      }
+      if (!advanced) return {};
+    }
+    return path;
   }
 };
 

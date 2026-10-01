@@ -21,27 +21,47 @@ template<typename T> struct Point {
   bool operator<(const Point& p) const { return x < p.x || (x == p.x && y < p.y); } // lexicografico
 };
 /**
- * Uso: dot(a, b), cross(a, b), cross(p, a, b), norm2(p), norm(p), sgn(v);
- * Operaciones vectoriales basicas: producto punto, producto cruz, norma al cuadrado, norma y signo.
- * Complejidad: $O(1)$ por operacion.
+ * Uso: dot(a, b), cross(a, b), cross(p, a, b), norm2(p);
+ * Operaciones que devuelven el mismo tipo $T$ del punto: producto punto, producto cruz (escalar) y norma al cuadrado.
+ * Complejidad: $O(1)$.
  */
 template<typename T> T dot(Point<T> a, Point<T> b) { return a.x * b.x + a.y * b.y; }
 template<typename T> T cross(Point<T> a, Point<T> b) { return a.x * b.y - a.y * b.x; }
 template<typename T> T cross(Point<T> p, Point<T> a, Point<T> b) { return cross(a - p, b - p); }
 template<typename T> T norm2(Point<T> p) { return dot(p, p); }
+/**
+ * Uso: norm(p);
+ * Norma (longitud) de un punto o vector; devuelve long double.
+ * Complejidad: $O(1)$.
+ */
 template<typename T> ld norm(Point<T> p) { return sqrtl(norm2(p)); }
+/**
+ * Uso: sgn(v);
+ * Signo de un valor: devuelve 1 si $v > 0$, -1 si $v < 0$ y 0 si $v = 0$.
+ * Complejidad: $O(1)$.
+ */
 template<typename T> int sgn(T v) { return (T(0) < v) - (v < T(0)); }
 /**
- * Uso: orient(a, b, c), on_segment(p, a, b), segment_intersect(a, b, c, d);
- * Orientacion de tres puntos (horaria, colineal o antihoraria), pertenencia de un punto a un segmento e interseccion de segmentos.
- * Complejidad: $O(1)$ por operacion.
+ * Uso: orient(a, b, c);
+ * Orientacion del giro $a \to b \to c$: devuelve +1 si es antihorario (izquierda), -1 si es horario (derecha) y 0 si son colineales.
+ * Complejidad: $O(1)$.
  */
 template<typename T> int orient(Point<T> a, Point<T> b, Point<T> c) { return sgn(cross(a, b, c)); }
 
+/**
+ * Uso: on_segment(p, a, b);
+ * Devuelve true si el punto $p$ pertenece al segmento $[a, b]$ (incluyendo los extremos).
+ * Complejidad: $O(1)$.
+ */
 template<typename T> bool on_segment(Point<T> p, Point<T> a, Point<T> b) {
   return orient(a, b, p) == 0 && min(a.x, b.x) <= p.x && p.x <= max(a.x, b.x) &&
          min(a.y, b.y) <= p.y && p.y <= max(a.y, b.y);
 }
+/**
+ * Uso: segment_intersect(a, b, c, d);
+ * Devuelve true si los segmentos $[a, b]$ y $[c, d]$ se intersectan (incluye tocarse en un punto o superponerse).
+ * Complejidad: $O(1)$.
+ */
 template<typename T> bool segment_intersect(Point<T> a, Point<T> b, Point<T> c, Point<T> d) {
   int o1 = orient(a, b, c), o2 = orient(a, b, d), o3 = orient(c, d, a), o4 = orient(c, d, b);
   if (o1 != o2 && o3 != o4) return true;
@@ -53,16 +73,20 @@ template<typename T> bool segment_intersect(Point<T> a, Point<T> b, Point<T> c, 
 }
 
 /**
- * Uso: polygon_area_2(poly) / 2 = area, boundary_points(poly), point_in_polygon(poly, p);
- * Area doble de un poligono (para evitar floats), puntos del reticulo en el borde (teorema de Pick) y clasificacion de un punto (0 fuera, 1 borde, 2 dentro).
- * Complejidad: $O(N)$ por operacion con $N$ vertices.
+ * Uso: polygon_area_2(poly);
+ * Devuelve el doble del area del poligono (para evitar floats); el area real es $area / 2$. Vertices en orden horario o antihorario.
+ * Complejidad: $O(N)$.
  */
 template<typename T> T polygon_area_2(const vector<Point<T>>& p) {
   T area = 0;
   for (int i = 0; i < p.size(); i++) area += cross(p[i], p[(i + 1) % p.size()]);
   return abs(area);
 }
-// Puntos del reticulo en el borde (Pick: 2*A = 2*I + B - 2)
+/**
+ * Uso: boundary_points(poly);
+ * Devuelve (long long) la cantidad de puntos del reticulo sobre el borde de un poligono (teorema de Pick: $2A = 2I + B - 2$).
+ * Complejidad: $O(N)$.
+ */
 long long boundary_points(const vector<Point<ll>>& poly) {
   ll b = 0;
   for (int i = 0; i < poly.size(); i++) {
@@ -71,7 +95,11 @@ long long boundary_points(const vector<Point<ll>>& poly) {
   }
   return b;
 }
-// Retorna 0 afuera, 1 en el borde, 2 adentro
+/**
+ * Uso: point_in_polygon(poly, p);
+ * Clasifica un punto respecto a un poligono: devuelve 0 fuera, 1 en el borde, 2 dentro.
+ * Complejidad: $O(N)$.
+ */
 template<typename T> int point_in_polygon(const vector<Point<T>>& poly, Point<T> p) {
   int hits = 0;
   for (int i = 0; i < poly.size(); i++) {
@@ -85,7 +113,7 @@ template<typename T> int point_in_polygon(const vector<Point<T>>& poly, Point<T>
 
 /**
  * Uso: auto hull = convex_hull(puntos);
- * Cascara convexa (monotonic chain) en sentido antihorario, preservando puntos colineales en el borde.
+ * Cascara convexa (monotonic chain) en sentido antihorario, preservando puntos colineales en el borde; devuelve vector<Point<T>>.
  * Complejidad: $O(N \log N)$.
  */
 template<typename T> vector<Point<T>> convex_hull(vector<Point<T>> pts) {
@@ -107,7 +135,7 @@ template<typename T> vector<Point<T>> convex_hull(vector<Point<T>> pts) {
 
 /**
  * Uso: closest_pair(puntos);
- * Distancia al cuadrado entre el par de puntos mas cercanos.
+ * Devuelve (long long) la distancia al cuadrado entre el par de puntos mas cercanos.
  * Complejidad: $O(N \log N)$.
  */
 long long closest_pair(vector<Point<ll>> pts) {
@@ -132,8 +160,9 @@ long long closest_pair(vector<Point<ll>> pts) {
 }
 
 /**
- * Uso: Event1D / Event2D para ordenar eventos de sweep line por coordenada x.
- * Eventos para sweep line en 1D y 2D; type +1 entrada/inicio, -1 salida/fin.
+ * Uso: Event1D ev = {x, type, id};
+ * Evento de sweep line 1D: type +1 marca el inicio (entrada) de un rango en $x$ y type -1 su fin (salida); id identifica al intervalo.
+ * Al ordenar por $x$ se da prioridad a las entradas: en empate de $x$, primero el de mayor type (+1 antes que -1).
  * Complejidad: $O(1)$ por evento, $O(K \log K)$ al ordenarlos con $K$ eventos.
  */
 struct Event1D {
@@ -141,6 +170,12 @@ struct Event1D {
   int type, id;
   bool operator<(const Event1D& o) const { return x != o.x ? x < o.x : type > o.type; }
 };
+/**
+ * Uso: Event2D ev = {x, y1, y2, type};
+ * Evento de sweep line 2D para rectangulos: cubre el rango vertical $[y1, y2]$ (ambos extremos inclusivos); type +1 borde izquierdo (entrada) y -1 borde derecho (salida).
+ * Al ordenar por $x$ se da prioridad a las entradas: en empate de $x$, primero el de mayor type (+1 antes que -1).
+ * Complejidad: $O(1)$ por evento, $O(K \log K)$ al ordenarlos con $K$ eventos.
+ */
 struct Event2D {
   ll x, y1, y2;
   int type; // +1 borde izq, -1 borde der
@@ -149,7 +184,7 @@ struct Event2D {
 
 /**
  * Uso: polar_sort(puntos, centro);
- * Ordena puntos por angulo polar alrededor de un centro, en sentido antihorario desde el eje $+x$.
+ * Ordena los puntos en su lugar por angulo polar alrededor de un centro, en sentido antihorario desde el eje $+x$.
  * Complejidad: $O(N \log N)$.
  */
 template<typename T> void polar_sort(vector<Point<T>>& pts, Point<T> center = {}) {
@@ -165,20 +200,29 @@ template<typename T> void polar_sort(vector<Point<T>>& pts, Point<T> center = {}
 }
 
 /**
- * Uso: dist_to_line(p, a, b), dist_to_segment(p, a, b), line_intersect(a, b, c, d);
- * Distancias de un punto a una linea o segmento e interseccion exacta de dos lineas infinitas no paralelas.
- * Complejidad: $O(1)$ por operacion.
+ * Uso: dist_to_line(p, a, b);
+ * Devuelve la distancia (long double) del punto $p$ a la linea infinita que pasa por $a$ y $b$.
+ * Complejidad: $O(1)$.
  */
 template<typename T> ld dist_to_line(Point<T> p, Point<T> a, Point<T> b) {
   return abs((ld)cross(p, a, b)) / norm(a - b);
 }
+/**
+ * Uso: dist_to_segment(p, a, b);
+ * Devuelve la distancia (long double) del punto $p$ al segmento $[a, b]$.
+ * Complejidad: $O(1)$.
+ */
 template<typename T> ld dist_to_segment(Point<T> p, Point<T> a, Point<T> b) {
   if (a == b) return norm(p - a);
   if (dot(p - a, b - a) <= 0) return norm(p - a);
   if (dot(p - b, a - b) <= 0) return norm(p - b);
   return dist_to_line(p, a, b);
 }
-// Interseccion exacta de lineas infinitas AB y CD (no paralelas)
+/**
+ * Uso: line_intersect(a, b, c, d);
+ * Devuelve el punto de interseccion (Point<long double>) de las lineas infinitas $AB$ y $CD$; no es valido si son paralelas.
+ * Complejidad: $O(1)$.
+ */
 Point<ld> line_intersect(Point<ld> a, Point<ld> b, Point<ld> c, Point<ld> d) {
   ld cr1 = cross(b - a, c - a), cr2 = cross(b - a, d - a);
   return c + (d - c) * (cr1 / (cr1 - cr2));
@@ -186,7 +230,7 @@ Point<ld> line_intersect(Point<ld> a, Point<ld> b, Point<ld> c, Point<ld> d) {
 
 /**
  * Uso: rotating_calipers(hull);
- * Diametro al cuadrado de un poligono convexo mediante calipers rotativos.
+ * Devuelve el diametro al cuadrado de un poligono convexo mediante calipers rotativos (mismo tipo $T$ del punto).
  * Complejidad: $O(N)$.
  */
 template<typename T> T rotating_calipers(const vector<Point<T>>& poly) {
@@ -204,15 +248,20 @@ template<typename T> T rotating_calipers(const vector<Point<T>>& poly) {
 }
 
 /**
- * Uso: Circle c(centro, radio); circle_line_intersect(a, b, c); circle_circle_intersect(c1, c2);
- * Circulo e intersecciones con lineas y otros circulos; devuelven 0, 1 o 2 puntos.
- * Complejidad: $O(1)$ por operacion.
+ * Uso: Circle c(centro, radio);
+ * Circulo con centro Point<long double> y radio long double.
+ * Complejidad: $O(1)$.
  */
 struct Circle {
   Point<ld> c;
   ld r;
   Circle(Point<ld> c = {}, ld r = 0) : c(c), r(r) {}
 };
+/**
+ * Uso: circle_line_intersect(a, b, circ);
+ * Devuelve vector<Point<long double>> con los 0, 1 o 2 puntos donde la linea $AB$ corta al circulo.
+ * Complejidad: $O(1)$.
+ */
 vector<Point<ld>> circle_line_intersect(Point<ld> a, Point<ld> b, Circle circ) {
   auto dir = b - a;
   ld len2 = norm2(dir);
@@ -225,6 +274,11 @@ vector<Point<ld>> circle_line_intersect(Point<ld> a, Point<ld> b, Circle circ) {
   ld off = sqrtl(max((ld)0, circ.r * circ.r - d2) / len2);
   return {proj - dir * off, proj + dir * off};
 }
+/**
+ * Uso: circle_circle_intersect(c1, c2);
+ * Devuelve vector<Point<long double>> con los 0, 1 o 2 puntos donde se cortan dos circulos (vacio si son concentricos o no se tocan).
+ * Complejidad: $O(1)$.
+ */
 vector<Point<ld>> circle_circle_intersect(Circle c1, Circle c2) {
   auto dir = c2.c - c1.c;
   ld d = norm(dir);
@@ -238,9 +292,9 @@ vector<Point<ld>> circle_circle_intersect(Circle c1, Circle c2) {
 }
 
 /**
- * Uso: vector<Halfplane> H; H.pb(Halfplane(a, b)); halfplane_intersection(H);
- * Interseccion de semiplanos (valida a la izquierda de cada recta $a \to b$); devuelve el poligono convexo resultante.
- * Complejidad: $O(N \log N)$.
+ * Uso: Halfplane hp(a, b);
+ * Un semiplano se crea con dos puntos: el plano valido es el que queda a la izquierda de la recta orientada $a \to b$ (producto cruz positivo).
+ * Complejidad: $O(1)$ por semiplano.
  */
 struct Halfplane {
   Point<ld> p, pq; // p = punto, pq = vector direccional
@@ -253,10 +307,20 @@ struct Halfplane {
     return cross(pq, e.p - p) > EPS;
   }
 };
+/**
+ * Uso: auto p = intersect(hp1, hp2);
+ * Devuelve el punto de corte (Point<long double>) entre las rectas de dos semiplanos.
+ * Complejidad: $O(1)$.
+ */
 Point<ld> intersect(Halfplane s, Halfplane t) {
   ld alpha = cross(t.p - s.p, t.pq) / cross(s.pq, t.pq);
   return s.p + s.pq * alpha;
 }
+/**
+ * Uso: auto poly = halfplane_intersection(H);
+ * Interseccion de un conjunto de semiplanos (cada uno valido a la izquierda de su recta); devuelve el poligono convexo resultante (vacio si la region es ilimitada o no existe).
+ * Complejidad: $O(N \log N)$.
+ */
 vector<Point<ld>> halfplane_intersection(vector<Halfplane>& H) {
   sort(all(H));
   int n = H.size(), k = 0;
@@ -293,9 +357,9 @@ vector<Point<ld>> halfplane_intersection(vector<Halfplane>& H) {
 }
 
 /**
- * Uso: Point3D p(x, y, z); dist_point_plane(p, a, n); dist_point_line(p, a, b); line_plane_intersect(L1, L2, P, N);
- * Punto 3D con producto punto y cruz, distancias punto-plano y punto-linea e interseccion linea-plano.
- * Complejidad: $O(1)$ por operacion.
+ * Uso: Point3D p(x, y, z); p.dot(q); p.cross(q); p.length();
+ * Punto 3D con operadores aritmeticos, producto punto, producto cruz y norma.
+ * Complejidad: $O(1)$.
  */
 struct Point3D {
   double x, y, z;
@@ -307,8 +371,18 @@ struct Point3D {
   Point3D cross(const Point3D& p) const { return {y * p.z - z * p.y, z * p.x - x * p.z, x * p.y - y * p.x}; }
   double length() const { return sqrt(dot(*this)); }
 };
+/**
+ * Uso: dist_point_plane(p, a, n), dist_point_line(p, a, b);
+ * Distancia (double) de un punto a un plano (dado por el punto $a$ y la normal $n$) y a una linea (por los puntos $a$ y $b$).
+ * Complejidad: $O(1)$.
+ */
 double dist_point_plane(Point3D p, Point3D a, Point3D n) { return abs((p - a).dot(n)) / n.length(); }
 double dist_point_line(Point3D p, Point3D a, Point3D b) { return (p - a).cross(b - a).length() / (b - a).length(); }
+/**
+ * Uso: line_plane_intersect(L1, L2, P, N);
+ * Punto de interseccion (Point3D) de la linea $L1 \to L2$ con el plano definido por el punto $P$ y la normal $N$; devuelve $(10^9, 10^9, 10^9)$ si son paralelos.
+ * Complejidad: $O(1)$.
+ */
 Point3D line_plane_intersect(Point3D L1, Point3D L2, Point3D P, Point3D N) {
   auto u = L2 - L1;
   double d = N.dot(u);

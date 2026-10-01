@@ -21,8 +21,9 @@ int main() {
   CHECK(zh.query_range(pa, 1, 3) == zh.query_range(pa, 1, 3));
 
   // Bitset reachability (cierre transitivo)
-  BitsetReachability<2500> br;
-  br.build(5, {{1, 2}, {2, 3}, {4, 5}});
+  BitsetReachability br(5);
+  br.add_edge(1, 2); br.add_edge(2, 3); br.add_edge(4, 5);
+  br.build();
   CHECK(br.can_reach(1, 3));
   CHECK(br.can_reach(1, 1));
   CHECK(!br.can_reach(1, 5));

@@ -83,21 +83,24 @@ struct ZobristHash {
 };
 
 /**
- * Uso[1]: BitsetReachability<MAXN> br; br.build(n, aristas); br.can_reach(u, v);
- * Cierre transitivo (alcanzabilidad todos-pares) de un grafo dirigido usando bitsets.
+ * Uso[1]: BitsetReachability br(n); br.add_edge(u, v); br.build(); br.can_reach(u, v);
+ * Cierre transitivo (alcanzabilidad todos-pares) de un grafo dirigido usando bitsets de palabras de 64 bits; el tamano se fija en el constructor.
+ * Indexación: nodos 1-indexados.
  * Complejidad: construccion $O(N^3 / 64)$, consulta $O(1)$.
  */
-template<size_t MAXN>
 struct BitsetReachability {
-  bitset<MAXN> reachable[MAXN];
-  void build(int n, const vector<pii>& edges) {
-    for (int i = 1; i <= n; i++) reachable[i].reset(), reachable[i][i] = 1;
-    for (auto [u, v] : edges) reachable[u][v] = 1;
+  int n, W;
+  vector<vector<unsigned long long>> reach;
+  BitsetReachability(int n) : n(n), W((n + 63) / 64), reach(n + 1, vector<unsigned long long>(W, 0)) {}
+  void add_edge(int u, int v) { reach[u][v >> 6] |= 1ULL << (v & 63); }
+  void build() {
+    for (int i = 1; i <= n; i++) reach[i][i >> 6] |= 1ULL << (i & 63);
     for (int k = 1; k <= n; k++)
       for (int i = 1; i <= n; i++)
-        if (reachable[i][k]) reachable[i] |= reachable[k];
+        if ((reach[i][k >> 6] >> (k & 63)) & 1ULL)
+          for (int w = 0; w < W; w++) reach[i][w] |= reach[k][w];
   }
-  bool can_reach(int u, int v) { return reachable[u][v]; }
+  bool can_reach(int u, int v) { return (reach[u][v >> 6] >> (v & 63)) & 1ULL; }
 };
 
 /**

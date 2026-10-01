@@ -135,8 +135,10 @@ namespace MathAlgo {
   }
 
   /**
-   * Uso: fft(vec_complejos, invert); auto c = multiply(a, b);
+   * Uso: auto c = multiply(a, b); // producto de polinomios (recomendado)
    * Transformada rapida de Fourier iterativa y multiplicacion exacta de polinomios con coeficientes enteros.
+   * fft(vec, invert) modifica el vector en su lugar: invert = false aplica la transformada directa e invert = true la inversa.
+   * En general usa multiply(a, b), que alinea ambos polinomios a potencia de dos, transforma, multiplica punto a punto e invierte; no hace falta inicializar el tamano.
    * Complejidad: $O(N \log N)$ con $N$ potencia de dos.
    */
   using cd = complex<double>;
@@ -178,8 +180,10 @@ namespace MathAlgo {
   }
 
   /**
-   * Uso: ntt(vec, invert); auto c = multiply_mod(a, b);
+   * Uso: auto c = multiply_mod(a, b); // producto de polinomios mod MOD (recomendado)
    * Transformada numerica rapida (NTT) y multiplicacion de polinomios con coeficientes modulares.
+   * ntt(vec, invert) modifica el vector en su lugar: invert = false directa, invert = true inversa. Requiere que el tamano sea potencia de dos.
+   * En general usa multiply_mod(a, b), que alinea a potencia de dos y hace todo el proceso; no hace falta inicializar el tamano.
    * Complejidad: $O(N \log N)$ con $N$ potencia de dos.
    */
   void ntt(vector<ll>& a, bool invert) {
@@ -221,25 +225,45 @@ namespace MathAlgo {
   }
 
   /**
-   * Uso: nim_game(pilas), sum_n(n), sum_squares(n), geom_sum(a, r, n);
-   * Decide el ganador del juego de Nim y calcula sumatorias cerradas (aritmetica, cuadrados y geometrica) modulo $M$.
-   * Complejidad: $O(N)$ para Nim, $O(\log M)$ para las sumatorias.
+   * Uso: nim_game(pilas);
+   * Juego de Nim: devuelve true si el primer jugador gana (el xor de las pilas es distinto de 0).
+   * Complejidad: $O(N)$.
    */
   bool nim_game(const vi& piles) {
     int x = 0;
     for (int p : piles) x ^= p;
     return x != 0;
   }
+
+  /**
+   * Uso: sum_n(n), sum_squares(n), sum_cubes(n), geom_sum(a, r, n);
+   * Sumatorias cerradas modulo $M$: aritmetica $\sum_{i=1}^{n} i$, de cuadrados $\sum_{i=1}^{n} i^2$, de cubos $\sum_{i=1}^{n} i^3$ y geometrica $\sum_{i=0}^{n-1} a r^i$.
+   * Complejidad: $O(\log M)$ por llamada (inverso modular).
+   */
   ll sum_n(ll n, ll m = MOD) { n %= m; return n * (n + 1) % m * modinv(2, m) % m; }
   ll sum_squares(ll n, ll m = MOD) {
     n %= m;
     return n * (n + 1) % m * (2 * n + 1) % m * modinv(6, m) % m;
+  }
+  ll sum_cubes(ll n, ll m = MOD) { // (n*(n+1)/2)^2
+    n %= m;
+    ll s = n * (n + 1) % m * modinv(2, m) % m;
+    return s * s % m;
   }
   ll geom_sum(ll a, ll r, ll n, ll m = MOD) {
     if (r == 1) return (n % m) * (a % m) % m;
     ll num = (modpow(r, n, m) - 1 + m) % m;
     return (a % m) * num % m * modinv((r - 1 + m) % m, m) % m;
   }
+
+  /**
+   * Uso: PI, to_rad(grados), to_deg(radianes);
+   * Constante $\pi$ y conversion grados/radianes para trabajar con funciones trigonometricas y angulos en radianes.
+   * Complejidad: $O(1)$.
+   */
+  const long double PI = acosl(-1.0L);
+  long double to_rad(long double deg) { return deg * PI / 180.0L; }
+  long double to_deg(long double rad) { return rad * 180.0L / PI; }
 
   /**
    * Uso: Matrix m(r, c); m.mat; m * o; m.power(p); Matrix::identity(n);
@@ -370,8 +394,10 @@ namespace MathAlgo {
   };
 
   /**
-   * Uso: fwht_xor(v, invert); auto c = xor_convolution(a, b); // igual para or_ y and_
+   * Uso: auto c = xor_convolution(a, b); // igual para or_ y and_ (recomendado)
    * Transformada de Walsh-Hadamard y convoluciones sobre operaciones de bits (xor, and, or) modulo $M$.
+   * fwht_xor(v, invert) modifica el vector en su lugar: invert = false directa, invert = true inversa; el tamano debe ser potencia de dos.
+   * En general usa xor_convolution / or_convolution / and_convolution, que alinean a potencia de dos y hacen todo el proceso.
    * Complejidad: $O(N \log N)$.
    */
   void fwht_xor(vector<ll>& a, bool invert) {

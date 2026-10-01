@@ -77,6 +77,9 @@ int main() {
   CHECK(mst.count_less_than(0, 7, 5) == 4); // {2,1,3,4}
   CHECK(mst.count_less_equal(0, 7, 5) == 5); // + el 5
   CHECK(mst.count_less_than(2, 4, 9) == 2); // {8,1}
+  mst.update(3, 100); // a[3]: 1 -> 100
+  CHECK(mst.count_less_than(0, 7, 5) == 3); // {2,3,4}
+  CHECK(mst.count_less_equal(0, 7, 5) == 4); // {2,3,4,5}
 
   // Sqrt decomposition
   SqrtDecomposition sq(a);

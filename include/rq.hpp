@@ -65,64 +65,73 @@ struct IterativeSegTree {
 
 /**
  * Uso[0]: RecursiveSegTree st(a); st.update(pos, val); st.query(L, R); st.find_first(val);
- * Arbol de segmentos recursivo para max (o suma/min) con busqueda del primer indice con valor mayor o igual.
+ * Arbol de segmentos recursivo con estructura de nodo y metodo merge para hacer variaciones faciles (max, +, min).
+ * Para cambiar la operacion, edita merge (mezcla de dos nodos) y neutral (identidad de la operacion).
+ * Indexación: 0-indexado.
  * Complejidad: actualizacion y consulta $O(\log N)$.
  */
 struct RecursiveSegTree {
+  struct Node { ll val; };
   int n;
-  vll st;
-  ll combine(ll a, ll b) { return max(a, b); } // max / + / min
+  vector<Node> st;
+  Node merge(const Node& a, const Node& b) { return {max(a.val, b.val)}; } // max / + / min
+  Node neutral() { return {-LINF}; } // identidad de merge: -LINF (max), 0 (suma), LINF (min)
   RecursiveSegTree(const vll& a) : n(a.size()), st(4 * a.size()) { build(1, 0, n - 1, a); }
   void build(int p, int L, int R, const vll& a) {
-    if (L == R) { st[p] = a[L]; return; }
+    if (L == R) { st[p] = {a[L]}; return; }
     int mid = (L + R) / 2;
     build(p << 1, L, mid, a);
     build(p << 1 | 1, mid + 1, R, a);
-    st[p] = combine(st[p << 1], st[p << 1 | 1]);
+    st[p] = merge(st[p << 1], st[p << 1 | 1]);
   }
   void update(int p, int L, int R, int pos, ll val) {
-    if (L == R) { st[p] = val; return; } // o st[p] += val
+    if (L == R) { st[p] = {val}; return; } // o st[p].val += val para sumar
     int mid = (L + R) / 2;
     pos <= mid ? update(p << 1, L, mid, pos, val) : update(p << 1 | 1, mid + 1, R, pos, val);
-    st[p] = combine(st[p << 1], st[p << 1 | 1]);
+    st[p] = merge(st[p << 1], st[p << 1 | 1]);
   }
-  ll query(int p, int L, int R, int qL, int qR) {
-    if (qL > R || qR < L) return 0; // NEUTRAL
+  Node query(int p, int L, int R, int qL, int qR) {
+    if (qL > R || qR < L) return neutral();
     if (qL <= L && R <= qR) return st[p];
     int mid = (L + R) / 2;
-    return combine(query(p << 1, L, mid, qL, qR), query(p << 1 | 1, mid + 1, R, qL, qR));
+    return merge(query(p << 1, L, mid, qL, qR), query(p << 1 | 1, mid + 1, R, qL, qR));
   }
   // Primer indice con valor >= val (asume arbol de max). -1 si no existe
   int find_first(int p, int L, int R, ll val) {
-    if (st[p] < val) return -1;
+    if (st[p].val < val) return -1;
     if (L == R) return L;
     int mid = (L + R) / 2;
-    return st[p << 1] >= val ? find_first(p << 1, L, mid, val) : find_first(p << 1 | 1, mid + 1, R, val);
+    return st[p << 1].val >= val ? find_first(p << 1, L, mid, val) : find_first(p << 1 | 1, mid + 1, R, val);
   }
   void update(int pos, ll val) { update(1, 0, n - 1, pos, val); }
-  ll query(int L, int R) { return query(1, 0, n - 1, L, R); }
+  ll query(int L, int R) { return query(1, 0, n - 1, L, R).val; }
   int find_first(ll val) { return find_first(1, 0, n - 1, val); }
 };
 
 /**
  * Uso[0]: LazySegTree st(a); st.add_range(L, R, v); st.set_range(L, R, v); st.query(L, R); st.get(pos);
- * Arbol de segmentos con propagacion perezosa para suma con actualizaciones de rango (add y set).
+ * Arbol de segmentos con propagacion perezosa y estructura de nodo + metodo merge para suma (o min/max) con add y set por rango.
+ * Para cambiar la operacion, edita merge y la manera en que apply_add/apply_set combinan el valor de cada nodo.
+ * Indexación: 0-indexado.
  * Complejidad: actualizacion y consulta de rango $O(\log N)$.
  */
 struct LazySegTree {
+  struct Node { ll sum = 0; };
   int n;
-  vll st, lazy_add, lazy_set;
+  vector<Node> st;
+  vll lazy_add, lazy_set;
   vector<bool> marked;
+  Node merge(const Node& a, const Node& b) { return {a.sum + b.sum}; } // + / min / max
   LazySegTree(const vll& a) : n(a.size()), st(4 * a.size()), lazy_add(4 * a.size()),
     lazy_set(4 * a.size()), marked(4 * a.size(), false) { build(1, 0, n - 1, a); }
   void apply_set(int p, ll val, int L, int R) {
-    st[p] = val * (R - L + 1); // para min/max: st[p] = val
+    st[p].sum = val * (R - L + 1); // para min/max: st[p].sum = val
     lazy_set[p] = val;
     lazy_add[p] = 0;
     marked[p] = true;
   }
   void apply_add(int p, ll val, int L, int R) {
-    st[p] += val * (R - L + 1); // para min/max: st[p] += val
+    st[p].sum += val * (R - L + 1); // para min/max: st[p].sum += val
     if (marked[p]) lazy_set[p] += val;
     else lazy_add[p] += val;
   }
@@ -140,11 +149,11 @@ struct LazySegTree {
     }
   }
   void build(int p, int L, int R, const vll& a) {
-    if (L == R) { st[p] = a[L]; return; }
+    if (L == R) { st[p] = {a[L]}; return; }
     int mid = (L + R) / 2;
     build(p << 1, L, mid, a);
     build(p << 1 | 1, mid + 1, R, a);
-    st[p] = st[p << 1] + st[p << 1 | 1];
+    st[p] = merge(st[p << 1], st[p << 1 | 1]);
   }
   void update(int p, int L, int R, int qL, int qR, ll val, int type) { // 1 = add, 2 = set
     if (qL > R || qR < L) return;
@@ -153,16 +162,16 @@ struct LazySegTree {
     int mid = (L + R) / 2;
     update(p << 1, L, mid, qL, qR, val, type);
     update(p << 1 | 1, mid + 1, R, qL, qR, val, type);
-    st[p] = st[p << 1] + st[p << 1 | 1];
+    st[p] = merge(st[p << 1], st[p << 1 | 1]);
   }
-  ll query(int p, int L, int R, int qL, int qR) {
-    if (qL > R || qR < L) return 0;
+  Node query(int p, int L, int R, int qL, int qR) {
+    if (qL > R || qR < L) return {0};
     if (qL <= L && R <= qR) return st[p];
     push(p, L, R);
     int mid = (L + R) / 2;
-    return query(p << 1, L, mid, qL, qR) + query(p << 1 | 1, mid + 1, R, qL, qR);
+    return merge(query(p << 1, L, mid, qL, qR), query(p << 1 | 1, mid + 1, R, qL, qR));
   }
-  ll get_point(int p, int L, int R, int pos) {
+  Node get_point(int p, int L, int R, int pos) {
     if (L == R) return st[p];
     push(p, L, R);
     int mid = (L + R) / 2;
@@ -170,8 +179,8 @@ struct LazySegTree {
   }
   void add_range(int L, int R, ll val) { update(1, 0, n - 1, L, R, val, 1); }
   void set_range(int L, int R, ll val) { update(1, 0, n - 1, L, R, val, 2); }
-  ll query(int L, int R) { return query(1, 0, n - 1, L, R); }
-  ll get(int pos) { return get_point(1, 0, n - 1, pos); }
+  ll query(int L, int R) { return query(1, 0, n - 1, L, R).sum; }
+  ll get(int pos) { return get_point(1, 0, n - 1, pos).sum; }
 };
 
 /**
@@ -272,9 +281,10 @@ struct FenwickTree2D {
 };
 
 /**
- * Uso[0]: MergeSortTree st(a); st.count_less_than(L, R, val); st.count_less_equal(L, R, val);
- * Arbol de segmentos con listas ordenadas para contar elementos menores o iguales a un valor en un rango.
- * Complejidad: construccion $O(N \log N)$, consulta $O(\log^2 N)$.
+ * Uso[0]: MergeSortTree st(a); st.count_less_than(L, R, val); st.count_less_equal(L, R, val); st.update(pos, val);
+ * Arbol de segmentos con listas ordenadas para contar elementos menores o iguales a un valor en un rango; soporta actualizaciones puntuales.
+ * Indexación: 0-indexado.
+ * Complejidad: construccion $O(N \log N)$, consulta $O(\log^2 N)$, actualizacion $O(N)$ (reconstruye el camino por mezcla).
  */
 struct MergeSortTree {
   int n;
@@ -285,8 +295,17 @@ struct MergeSortTree {
     int mid = (L + R) / 2;
     build(p << 1, L, mid, a);
     build(p << 1 | 1, mid + 1, R, a);
+    merge_children(p);
+  }
+  void merge_children(int p) {
     st[p].resize(st[p << 1].size() + st[p << 1 | 1].size());
     merge(all(st[p << 1]), all(st[p << 1 | 1]), st[p].begin());
+  }
+  void update(int p, int L, int R, int pos, ll val) {
+    if (L == R) { st[p] = {val}; return; }
+    int mid = (L + R) / 2;
+    pos <= mid ? update(p << 1, L, mid, pos, val) : update(p << 1 | 1, mid + 1, R, pos, val);
+    merge_children(p);
   }
   int less_than(int p, int L, int R, int qL, int qR, ll val) {
     if (qL > R || qR < L) return 0;
@@ -300,6 +319,7 @@ struct MergeSortTree {
     int mid = (L + R) / 2;
     return less_equal(p << 1, L, mid, qL, qR, val) + less_equal(p << 1 | 1, mid + 1, R, qL, qR, val);
   }
+  void update(int pos, ll val) { update(1, 0, n - 1, pos, val); }
   int count_less_than(int L, int R, ll val) { return less_than(1, 0, n - 1, L, R, val); }
   int count_less_equal(int L, int R, ll val) { return less_equal(1, 0, n - 1, L, R, val); }
 };
@@ -337,6 +357,12 @@ struct SqrtDecomposition {
   }
 };
 
+/**
+ * Uso[0]: Treap t; t.insert(x); t.erase(x); t.kth_element(k); t.count_less_than(x);
+ * Arbol binario de busqueda balanceado aleatoriamente (treap) con consultas por orden.
+ * Complejidad: cada operacion $O(\log N)$ esperado.
+ */
+
 mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 struct TreapNode {
   ll key, prior;
@@ -345,11 +371,6 @@ struct TreapNode {
   TreapNode(ll key) : key(key), prior(rng()), sz(1), l(nullptr), r(nullptr) {}
 };
 typedef TreapNode* pNode;
-/**
- * Uso[0]: Treap t; t.insert(x); t.erase(x); t.kth_element(k); t.count_less_than(x);
- * Arbol binario de busqueda balanceado aleatoriamente (treap) con consultas por orden.
- * Complejidad: cada operacion $O(\log N)$ esperado.
- */
 struct Treap {
   pNode root = nullptr;
   int sz(pNode t) { return t ? t->sz : 0; }
@@ -483,6 +504,10 @@ struct ImplicitTreap {
 /**
  * Uso[0]: Mo mo(n); mo.add_query(l, r); auto ans = mo.solve(add, remove, get_ans);
  * Algoritmo de Mo 1D para responder consultas de rango offline cuando add y remove son $O(1)$.
+ * Ejemplo de los callbacks (contar distintos en [l, r]): int cnt[MAXV] = {}, d = 0;
+ *   auto add = [&](int i){ if (!cnt[a[i]]++) d++; };
+ *   auto remove = [&](int i){ if (!--cnt[a[i]]) d--; };
+ *   auto get = [&](){ return (ll)d; };
  * Complejidad: $O((N + Q)\sqrt{N})$ movimientos.
  */
 struct Mo {
@@ -513,6 +538,8 @@ struct Mo {
 /**
  * Uso[0]: MoWithUpdates mo(n); mo.add_update(pos, antes, despues); mo.add_query(l, r); auto ans = mo.solve(add, remove, apply, revert, get_ans);
  * Algoritmo de Mo con actualizaciones puntuales (Mo 3D); responde consultas sobre el arreglo en un instante dado.
+ * apply(u, L, R) aplica el update u al rango actual [L,R] y revert lo deshace; L y R son los parametros que recibe el callback.
+ * Ejemplo (distintos): si u.pos cae en [L,R] se retira el valor viejo y se agrega el nuevo; luego arr[u.pos] = u.new_val (y al reves en revert).
  * Complejidad: $O((N + Q)^{5/3})$ movimientos esperados.
  */
 struct MoWithUpdates {
@@ -551,6 +578,7 @@ struct MoWithUpdates {
 /**
  * Uso[0]: RollbackMo mo(n); mo.add_query(l, r); mo.solve(add, current, snapshot, rollback, reset);
  * Variante de Mo con rollback para estructuras donde agregar es $O(1)$ pero eliminar es costoso o imposible.
+ * Ejemplo (distintos): add(i) inserta a[i] y guarda i en un stack; snapshot() limpia el stack; rollback() deshace los adds del stack; reset() vacia toda la estructura.
  * Complejidad: $O((N + Q)\sqrt{N})$ operaciones de add.
  */
 struct RollbackMo {

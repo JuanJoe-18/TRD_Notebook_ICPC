@@ -42,6 +42,8 @@ struct LiChaoTree {
 /**
  * Uso: dnc_dp(1, n, 0, n, dp_prev, dp_curr, cost);
  * Divide & conquer DP: resuelve $dp[i][j] = \min_{k<j}(dp[i-1][k] + cost(k+1,j))$ cuando la decision optima es monotona.
+ * Ejemplo de cost (costo de un segmento, en $O(1)$): auto cost = [&](int l, int r){ return pref[r] - pref[l - 1]; };
+ * Indexación: 0-indexado; para particionar en $k$ grupos, $dp\_prev[0] = 0$.
  * Complejidad: $O(K N \log N)$ con $cost$ evaluada en $O(1)$.
  */
 template<class CostFunc>

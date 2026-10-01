@@ -125,10 +125,10 @@ int main() {
   CHECK(fg.cycle_size[2] == 2 && fg.dist_to_cycle[1] == 1);
 
   // LCA en arbol 1-2,1-3,3-4
-  vector<vi> tree_adj(5);
-  tree_adj[1] = {2, 3}; tree_adj[2] = {1}; tree_adj[3] = {1, 4}; tree_adj[4] = {3};
-  LCA lca(4);
-  lca.build(1, tree_adj);
+  Graph<ll> lg(4);
+  lg.add_undirected_edge(1, 2); lg.add_undirected_edge(1, 3); lg.add_undirected_edge(3, 4);
+  LCA<ll> lca(4);
+  lca.build(1, lg);
   CHECK(lca.lca(2, 4) == 1 && lca.lca(3, 4) == 3);
   CHECK(lca.dist(2, 4) == 3);
 
@@ -146,10 +146,23 @@ int main() {
   BipartiteMatcher bm(2, 2);
   bm.add_edge(1, 1); bm.add_edge(1, 2); bm.add_edge(2, 2);
   CHECK(bm.max_matching() == 2);
+  CHECK(bm.match_of(1) >= 1 && bm.match_of(2) >= 1); // ambas derechas emparejadas
   // Hopcroft-Karp
   HopcroftKarp hk(2, 2);
   hk.add_edge(1, 1); hk.add_edge(1, 2); hk.add_edge(2, 2);
   CHECK(hk.max_matching() == 2);
+  CHECK(hk.match_of(1) >= 1 && hk.match_of(2) >= 1);
+
+  // Hamiltonian: triangulo -> camino y ciclo hamiltoniano
+  Hamiltonian ham(3);
+  ham.add_edge(1, 2); ham.add_edge(2, 3); ham.add_edge(3, 1);
+  CHECK(ham.find_path().size() == 3);
+  CHECK(ham.find_cycle().size() == 3);
+  // grafo camino 1-2-3-4: tiene camino hamiltoniano (el propio) pero no ciclo
+  Hamiltonian path4(4);
+  path4.add_edge(1, 2); path4.add_edge(2, 3); path4.add_edge(3, 4);
+  CHECK(path4.find_path().size() == 4);
+  CHECK(path4.find_cycle().empty());
 
   // BridgeTree: triangulo + puente 3-4
   BridgeTree bt(4, 4);
@@ -158,11 +171,13 @@ int main() {
   bt.build();
   CHECK(bt.is_bridge[3] && !bt.is_bridge[0]);
 
-  // Dinic: max flow
+  // Dinic: max flow + reconstruccion de camino
   Dinic din(4, 1, 4);
   din.add_edge(1, 2, 3); din.add_edge(1, 3, 2);
   din.add_edge(2, 3, 1); din.add_edge(2, 4, 2); din.add_edge(3, 4, 3);
   CHECK(din.max_flow() == 5);
+  auto flow_path = din.restore_path();
+  CHECK(!flow_path.empty() && flow_path.front() == 1 && flow_path.back() == 4);
 
   // MCMF
   MCMF mcmf(3);
