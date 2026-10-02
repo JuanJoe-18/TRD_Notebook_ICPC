@@ -254,6 +254,57 @@ int main() {
     CHECK(!bad.feasible());
   }
 
+  // MultiStateDijkstra: descuento a mitad de precio en hasta K aristas
+  {
+    Graph<ll> g(4);
+    g.add_directed_edge(1, 2, 10, 0);
+    g.add_directed_edge(2, 3, 5, 1);
+    g.add_directed_edge(1, 4, 2, 2);
+    g.add_directed_edge(4, 3, 20, 3);
+    MultiStateDijkstra<ll> msd0(g, 0);
+    msd0.run(1);
+    CHECK(msd0.dist[3][0] == 15);
+    MultiStateDijkstra<ll> msd1(g, 1);
+    msd1.run(1);
+    CHECK(msd1.dist[3][1] == 15); // sin gastar el descuento
+    CHECK(msd1.dist[3][0] == 10); // descuento en 1->2 (5) + 2->3 (5)
+    CHECK(min(msd1.dist[3][0], msd1.dist[3][1]) == 10);
+  }
+  // Stress MultiStateDijkstra vs brute force (caminos simples con hasta K descuentos)
+  {
+    mt19937 rnd(1234);
+    for (int it = 0; it < 200; it++) {
+      int n = 2 + rnd() % 6, m = 1 + rnd() % 10, K = rnd() % 3;
+      Graph<ll> gg(n);
+      for (int i = 0; i < m; i++) {
+        int u = 1 + rnd() % n, v = 1 + rnd() % n;
+        gg.add_directed_edge(u, v, 1 + rnd() % 20, i);
+      }
+      MultiStateDijkstra<ll> ms(gg, K);
+      ms.run(1);
+      for (int t = 1; t <= n; t++) {
+        ll bruteAns = LINF;
+        vector<bool> vis(n + 1, false);
+        function<void(int, ll, int)> dfs = [&](int u, ll cost, int used) {
+          if (u == t) { bruteAns = min(bruteAns, cost); return; }
+          for (int id : gg.adj[u]) {
+            auto& e = gg.edges[id];
+            if (vis[e.to]) continue;
+            vis[e.to] = true;
+            dfs(e.to, cost + e.weight, used);
+            if (used < K) dfs(e.to, cost + e.weight / 2, used + 1);
+            vis[e.to] = false;
+          }
+        };
+        vis[1] = true;
+        dfs(1, 0, 0);
+        ll msAns = LINF;
+        for (int rem = 0; rem <= K; rem++) msAns = min(msAns, ms.dist[t][rem]);
+        CHECK(msAns == bruteAns);
+      }
+    }
+  }
+
   if (failures) { cout << "test_graph: " << failures << " fallos\n"; return 1; }
   cout << "test_graph: OK\n";
   return 0;

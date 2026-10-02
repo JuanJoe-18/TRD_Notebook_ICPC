@@ -40,674 +40,571 @@
 
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\textbf{\footnotesize ICPC TRD --- Manual Táctico y Guía de Modificabilidad}}
+\fancyhead[L]{\textbf{\footnotesize ICPC TRD --- Guía}}
 \fancyhead[R]{\footnotesize Pág. \thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 
 \setlength{\columnsep}{16pt}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3pt}
+\setlength{\emergencystretch}{3em}
 
 \begin{document}
 
 \begin{center}
-  {\Large\textbf{MANUAL TÁCTICO DE COMPETENCIA ICPC}}\\[2pt]
-  {\small\textbf{Equipo TRD --- Guía Avanzada de Reconocimiento, Índices y Modificabilidad de Plantillas}}
+  {\Large\textbf{MANUAL TRD}}\\[2pt]
+  {\small\textbf{Operación, Inventario de Plantillas y Reconocimiento de Problemas}}
 \end{center}
 \vspace{-4pt}
 \hrule
 \vspace{6pt}
 
+\noindent\small Esta guía acompaña a \textit{plantilla.pdf}. Los algoritmos aparecen en el \textbf{mismo orden} que en la plantilla; el marcador \textbf{(0)/(1)} indica la base de indexación, igual que en los comentarios \textit{Uso[0]}/\textit{Uso[1]} de cada header. Cuando no aplica, no se marca.
+
 \begin{multicols}{2}
 
-\section*{1. Estrategia y Dinámica de Equipo}
+\section*{0. Operación en Competencia}
 
-\subsection*{1.1 Protocolo de la Máquina Única}
-En una competencia ICPC con 1 sola computadora para 3 personas, el recurso más escaso es el tiempo de máquina. El cuello de botella casi nunca es la velocidad de tipeo, sino el tiempo desperdiciado escribiendo código no probado en papel.
-\begin{itemize}
-  \item \textbf{Regla del Papel:} Nadie se sienta a programar sin tener escritas las transiciones del DP, la condición de parada o el diseño de la red de flujo con sus capacidades.
-  \item \textbf{Protocolo de 15 minutos:} Si estás en la máquina y llevas 15 minutos atascado en un bug, \textbf{imprime el código y cede la computadora}. Depura con lápiz sobre el papel mientras tu compañero avanza en otro problema ya diseñado.
-  \item \textbf{Roles y Fuertes del Equipo TRD:}
-  \begin{itemize}
-    \item \textbf{JuanJoe-18:} Sorting, Greedy, Geometría Computacional, Grafos, Range Queries (RQ) y Strings. Identificación ágil de estructuras y reducciones de búsqueda.
-    \item \textbf{``Botinix'':} Programador COMPLETO e implementador principal. Tracción pesada, consistencia, velocidad en templates y resolución de bugs difíciles.
-    \item \textbf{JuanchoKing:} Rey del Chess, Matemáticas puras, Teoría de Números, Combinatoria y sólido implementador. Maestro del juego y de las reducciones abstractas.
-  \end{itemize}
+\subsection*{0.1 Protocolo de la Máquina Única}
+Hay 1 computadora para 3 personas; el recurso escaso es el tiempo de máquina.
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textbf{Papel primero:} nadie programa sin tener escritas las transiciones del DP, la condición de parada o la red de flujo con sus capacidades.
+  \item \textbf{Regla de los 15 minutos:} si llevas 15 min atascado en un bug, cede la máquina y depura en papel mientras otro avanza.
+  \item \textbf{Implementación por pares:} uno escribe y otro revisa el código en paralelo. Reduce errores de índices, typos y olvidos de casos borde.
+  \item \textbf{Antes de cada submit:} corre el checklist de la sección 0.4 y casos de prueba extra (no solo los de la muestra).
 \end{itemize}
 
-\subsection*{1.2 Template Base y Manejo de I/O}
-Nunca uses \texttt{endl}; usa \texttt{'\textbackslash n'}. Asegúrate de desactivar la sincronización con stdio:
-\begin{lstlisting}
-ios_base::sync_with_stdio(false);
-cin.tie(NULL);
-\end{lstlisting}
-Para números aleatorios seguros (evitando hacks de hashes con pruebas premeditadas en Codeforces/ICPC):
-\begin{lstlisting}
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
-ll rand_val(ll a, ll b) { 
-  return uniform_int_distribution<ll>(a, b)(rng); 
-}
-\end{lstlisting}
-
----
-
-\section*{2. Sistema Canónico de Índices (0 vs 1)}
-
-Uno de los bugs más devastadores en vivo es mezclar 0-based y 1-based. Esta tabla resume la convención exacta de nuestra biblioteca:
-
-\begin{center}
-\small
-\begin{tabular}{|l|l|c|c|}
-\hline
-\textbf{Estructura} & \textbf{Archivo} & \textbf{Base} & \textbf{Límites} \\
-\hline
-\texttt{Graph<T>} & \texttt{graph.hpp} & \textbf{1-based} & $1 \dots n$ \\
-\texttt{Dijkstra<T>} & \texttt{graph.hpp} & \textbf{1-based} & $1 \dots n$ \\
-\texttt{ZeroOneBfs} & \texttt{graph.hpp} & \textbf{1-based} & $1 \dots n$ \\
-\texttt{DSU} & \texttt{graph.hpp} & \textbf{0-based} & $0 \dots n-1$ \\
-\texttt{FenwickTree} & \texttt{rq.hpp} & \textbf{1-based} & $1 \dots n$ \\
-\texttt{SparseTable} & \texttt{rq.hpp} & \textbf{0-based} & $0 \dots n-1$ \\
-\texttt{IterSegTree} & \texttt{rq.hpp} & \textbf{0-based} & $0 \dots n-1$ \\
-\texttt{HLD} & \texttt{tree.hpp} & \textbf{1-based} & $1 \dots n$ \\
-\texttt{LCA / BinLift} & \texttt{tree.hpp} & \textbf{1-based} & $1 \dots n$ \\
-\hline
-\end{tabular}
-\end{center}
-
-\subsection*{2.1 El Peligro Fatal de Fenwick (BIT)}
-En el Fenwick Tree:
-\begin{lstlisting}
-void add(int idx, ll val) {
-  for (; idx <= n; idx += idx & -idx) bit[idx] += val;
-}
-\end{lstlisting}
-Si se llama con \texttt{idx = 0}, la operación \texttt{0 \& -0} da \texttt{0}, resultando en un \textbf{bucle infinito} que genera TLE inexplicable. Si tus datos son 0-based, haz siempre \texttt{ft.add(x + 1, val)} y \texttt{ft.query(l + 1, r + 1)}.
-
-\subsection*{2.2 DSU con Problemas 1-based}
-Como el constructor de \texttt{DSU(n)} inicializa de $0$ a $n-1$, si el problema da vértices $1 \dots n$, simplemente inicializa \texttt{DSU dsu(n + 1)}. El nodo 0 existirá pero quedará aislado sin afectar las componentes $1 \dots n$.
-
-\subsection*{2.3 Euler Tour (Aplanamiento de Árbol)}
-Para mapear subárboles a rangos contiguos en un Segment Tree:
-\begin{lstlisting}
-int timer = 0;
-vi tin(n + 1), tout(n + 1), flat(n + 1);
-void dfs_flat(int u, int p) {
-  tin[u] = ++timer;
-  flat[timer] = u;
-  for (int v : adj[u]) if (v != p) dfs_flat(v, u);
-  tout[u] = timer;
-}
-// El subarbol de u es exactamente el rango: [tin[u], tout[u]]
-\end{lstlisting}
-
----
-
-\section*{3. Modificabilidad Avanzada: Recetario de Funciones}
-
-\subsection*{3.1 Dijkstra Multi-Estado (Estado Extendido)}
-Cuando el costo no solo depende del vértice, sino de un recurso (ej. $K$ boletos de descuento, paridad de pasos, combustible):
-\begin{enumerate}
-  \item Define el estado como una tupla: \texttt{(nodo, recurso)}.
-  \item La matriz de distancias pasa a ser \texttt{dist[N][K+1]}.
-  \item El heap contiene \texttt{\{costo, \{nodo, recurso\}\}}.
-\end{enumerate}
-
-\begin{lstlisting}
-vector<vll> dist(n + 1, vll(k + 1, LINF));
-using Item = pair<ll, pair<int, int>>;
-priority_queue<Item, vector<Item>, greater<Item>> pq;
-
-dist[src][k] = 0;
-pq.push({0, {src, k}});
-
-while (!pq.empty()) {
-  auto [d, state] = pq.top(); pq.pop();
-  auto [u, rem] = state;
-  if (d > dist[u][rem]) continue;
-
-  for (int id : g.adj[u]) {
-    auto& e = g.edges[id];
-    // Transicion normal (costo completo)
-    if (dist[u][rem] + e.weight < dist[e.to][rem]) {
-      dist[e.to][rem] = dist[u][rem] + e.weight;
-      pq.push({dist[e.to][rem], {e.to, rem}});
-    }
-    // Transicion especial (usando 1 descuento)
-    if (rem > 0) {
-      ll w2 = dist[u][rem] + e.weight / 2;
-      if (w2 < dist[e.to][rem - 1]) {
-        dist[e.to][rem - 1] = w2;
-        pq.push({w2, {e.to, rem - 1}});
-      }
-    }
-  }
-}
-\end{lstlisting}
-
-\subsection*{3.2 Reconstrucción de Caminos (Path Recovery)}
-Para recuperar la ruta en Dijkstra, BFS o 0-1 BFS:
-\begin{lstlisting}
-// Vector de padres inicializado en -1: vi p(n + 1, -1);
-// Al relajar: p[e.to] = u;
-vi restore_path(int target, const vi& p) {
-  vi path;
-  for (int v = target; v != -1; v = p[v]) path.pb(v);
-  reverse(all(path));
-  return path; // Retorna {src, ..., target}
-}
-\end{lstlisting}
-
-\subsection*{3.3 Segment Tree: Desacoplamiento de Nodo}
-No modifiques los índices del árbol. Solo redefine el \texttt{struct Node} y la función \texttt{merge}:
-
-\begin{lstlisting}
-// Ejemplo: Max Subarray Sum en O(log N)
-struct Node {
-  ll sum, pref, suff, ans;
-  Node(ll v = 0) {
-    sum = v;
-    pref = suff = ans = max(0LL, v);
-  }
-};
-
-Node merge(const Node& a, const Node& b) {
-  Node res;
-  res.sum = a.sum + b.sum;
-  res.pref = max(a.pref, a.sum + b.pref);
-  res.suff = max(b.suff, b.sum + a.suff);
-  res.ans = max({a.ans, b.ans, a.suff + b.pref});
-  return res;
-}
-\end{lstlisting}
-
-\subsection*{3.4 Segment Tree con Lazy Propagation Canónico}
-El secreto para no confundirse con Lazy es respetar dos reglas:
-\begin{itemize}
-  \item \textbf{Aplicar al nodo:} Al aplicar una etiqueta a un nodo, se debe actualizar su valor real y combinar su etiqueta lazy pendiente.
-  \item \textbf{Empujar a los hijos:} Solo empuja a los hijos antes de descender.
+\subsection*{0.2 Lectura y Gestión de Tiempo}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textbf{Leer TODOS los problemas} en la primera pasada, antes de escribir código.
+  \item No priorizar por ``los más resueltos'': el número de submits no mide dificultad. Un problema ignorado puede ser el más fácil.
+  \item Anota por problema: idea, técnica, complejidad estimada y prioridad. Empieza por los fáciles confirmados.
+  \item \textbf{Pausas cortas} (2--3 min) al estancarte para refrescar la mente; rota de problema y de máquina.
 \end{itemize}
 
-\begin{lstlisting}
-struct LazySegTree {
-  int n;
-  vll st, lazy;
-  LazySegTree(int n) : n(n), st(4*n, 0), lazy(4*n, 0) {}
-
-  void apply(int p, int l, int r, ll val) {
-    st[p] += (r - l + 1) * val; // Actualiza valor
-    lazy[p] += val;             // Acumula tag
-  }
-  void push(int p, int l, int r) {
-    if (lazy[p] == 0) return;
-    int mid = (l + r) / 2;
-    apply(2*p, l, mid, lazy[p]);
-    apply(2*p+1, mid+1, r, lazy[p]);
-    lazy[p] = 0;
-  }
-  void update(int p, int l, int r, int ql, int qr, ll val) {
-    if (ql <= l && r <= qr) { apply(p, l, r, val); return; }
-    push(p, l, r);
-    int mid = (l + r) / 2;
-    if (ql <= mid) update(2*p, l, mid, ql, qr, val);
-    if (qr > mid)  update(2*p+1, mid+1, r, ql, qr, val);
-    st[p] = st[2*p] + st[2*p+1];
-  }
-  ll query(int p, int l, int r, int ql, int qr) {
-    if (ql <= l && r <= qr) return st[p];
-    push(p, l, r);
-    int mid = (l + r) / 2;
-    ll res = 0;
-    if (ql <= mid) res += query(2*p, l, mid, ql, qr);
-    if (qr > mid)  res += query(2*p+1, mid+1, r, ql, qr);
-    return res;
-  }
-};
-\end{lstlisting}
-
-\subsection*{3.5 HLD sobre Aristas (Edge Updates)}
-Para actualizar o consultar caminos con valores en las aristas:
-\begin{enumerate}
-  \item Cada arista $(u, v)$ se asigna al nodo hijo: $\text{child} = (\text{depth}[u] > \text{depth}[v] ? u : v)$.
-  \item Al recorrer cadenas en HLD, cuando ambos nodos $u$ y $v$ quedan en la misma cadena pesada con $\text{pos}[u] \le \text{pos}[v]$, la consulta debe ser:
-  \begin{lstlisting}
-  if (u != v) {
-    res = merge(res, segtree.query(pos[u] + 1, pos[v]));
-  }
-  \end{lstlisting}
-  El \texttt{+1} excluye la arista que sube desde el LCA hacia su padre.
-\end{enumerate}
-
-\subsection*{3.6 DP con Rerooting (Todos los Nodos como Raíz)}
-Problema tipo: "Calcula para cada nodo $u$ la suma de distancias / mejor camino si $u$ fuera la raíz del árbol".
-\begin{itemize}
-  \item \textbf{Paso 1 (DFS Bottom-up):} Calcula $dp[u]$ combinando los estados de sus hijos.
-  \item \textbf{Paso 2 (DFS Top-down / Rerooting):} Al pasar la raíz de $u$ a un hijo $v$, se extrae la contribución de $v$ del estado de $u$ (usando prefijos y sufijos de hijos si la operación no es invertible) y se le añade a $v$ como nuevo hijo.
+\subsection*{0.3 Roles}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textbf{JuanJoe-18:} Sorting, Greedy, Geometría, Grafos, Range Queries y Strings. Identificación de estructuras y reducciones.
+  \item \textbf{Botinix:} implementador principal; velocidad en templates y resolución de bugs difíciles.
+  \item \textbf{JuanchoKing:} Chess, Matemáticas, Teoría de Números y Combinatoria. Reducciones abstractas.
 \end{itemize}
 
-\begin{lstlisting}
-struct State { ll sz, sum; };
-State merge_sub(State a, State b) {
-  return {a.sz + b.sz, a.sum + b.sum + b.sz};
-}
-// Al mover la raiz de u a v:
-// 1. Quitar a v de u
-// 2. Insertar u en v
-\end{lstlisting}
-
-\subsection*{3.7 Optimización Divide and Conquer (D\&C DP)}
-Aplica a recurrencias de la forma:
-$$dp[i][j] = \min_{k < j} (dp[i-1][k] + C[k][j])$$
-donde el punto óptimo $opt[i][j]$ es monótono: $opt[i][j-1] \le opt[i][j] \le opt[i][j+1]$. Reduce la complejidad de $O(K N^2)$ a $O(K N \log N)$.
-
-\begin{lstlisting}
-void compute(int i, int l, int r, int optl, int optr) {
-  if (l > r) return;
-  int mid = (l + r) / 2;
-  pair<ll, int> best = {LINF, -1};
-  for (int k = optl; k <= min(mid - 1, optr); k++) {
-    best = min(best, {dp[i-1][k] + cost(k, mid), k});
-  }
-  dp[i][mid] = best.first;
-  int opt = best.second;
-  compute(i, l, mid - 1, optl, opt);
-  compute(i, mid + 1, r, opt, optr);
-}
-\end{lstlisting}
-
-\subsection*{3.8 SOS DP (Sum Over Subsets)}
-Dada una función $A$ sobre máscaras de bits, calcula para cada máscara $mask$ la suma de todos sus subconjuntos $sub \subseteq mask$:
-$$F[mask] = \sum_{sub \subseteq mask} A[sub]$$
-Fuerza bruta sobre submáscaras toma $O(3^N)$. Con SOS DP se logra en $O(N 2^N)$:
-
-\begin{lstlisting}
-// dp inicializado con los valores base a[mask]
-for (int i = 0; i < N; i++) {
-  for (int mask = 0; mask < (1 << N); mask++) {
-    if (mask & (1 << i)) {
-      dp[mask] += dp[mask ^ (1 << i)];
-    }
-  }
-}
-\end{lstlisting}
-
----
-
-\section*{4. Marco Teórico: DP como Autómatas y DAGs}
-
-Cuando un problema de Programación Dinámica parece inabordable o multidimensional (DP ``HARD''), modelarlo formalmente como un \textbf{Autómata Finito Determinista (DFA)} y su \textbf{Grafo Acíclico Dirigido (DAG)} inducido elimina toda ambigüedad.
-
-\subsection*{4.1 La 5-Tupla Formal $\mathcal{M} = (Q, \Sigma, \delta, q_0, F)$}
-Todo problema de DP se formaliza rigurosamente como:
-\begin{itemize}
-  \item \textbf{Espacio de Estados ($Q$):} Conjunto de subproblemas discretos. Es la \textit{memoria mínima y suficiente} para tomar decisiones futuras sin violar el principio de optimalidad de Bellman.
-  \item \textbf{Alfabeto de Decisiones ($\Sigma$):} Conjunto finito de transiciones o decisiones atómicas permitidas.
-  \item \textbf{Función de Transición ($\delta: Q \times \Sigma \to Q \cup \{\emptyset\}$):} Regla determinista que calcula el sucesor $q' = \delta(q, a)$. Si la decisión $a$ infringe restricciones, conmuta a $\emptyset$ (transición prohibida).
-  \item \textbf{Estado Inicial ($q_0 \in Q$):} Caso base trivial de partida.
-  \item \textbf{Conjunto de Aceptación ($F \subseteq Q$):} Estados finales que representan la resolución del problema global.
+\subsection*{0.4 Checklist Pre-Submit}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textbf{Overflow:} si sumas o multiplicaciones pueden superar $2\times 10^9$, usa \textit{ll} y escribe \textit{1LL * a * b}.
+  \item \textbf{INF:} para caminos mínimos usa \textit{LINF} (1e18); \textit{INF} (1e9) solo si los pesos lo permiten.
+  \item \textbf{Múltiples testcases:} limpia estructuras globales solo hasta $N$; no reasignes con \textit{memset} de tamaños gigantes.
+  \item \textbf{Indexación:} verifica la base (0)/(1) de cada estructura que uses (marcada en el inventario).
+  \item \textbf{Casos borde:} $N=1,2$; grafo disconexo (¿imprime $-1$?); árbol en línea recta; cadena vacía o con un solo carácter; polígono degenerado; valores extremos (0, negativos).
+  \item Imprime con \textit{'\textbackslash n'}, nunca \textit{endl}.
 \end{itemize}
 
-\subsection*{4.2 Las 3 Preguntas Universales de Diseño}
-Ante cualquier DP complejo en competencia, responde en papel:
-\begin{enumerate}
-  \item \textbf{Eje de Avance:} ¿Qué variable escalar cuantifica el progreso monótono hacia $F$? (índice, suma, tiempo, bits encendidos). Esto garantiza ausencia de ciclos y define el orden topológico.
-  \item \textbf{Memoria Mínima:} ¿Cuál es la mínima información histórica indispensable para dictaminar si $\delta(q, a)$ es legal? (purgar toda variable que no condicione el futuro).
-  \item \textbf{Decisiones Legales:} ¿Qué aristas $\Sigma$ emanan del estado actual y qué invariantes o penalidades imponen?
-\end{enumerate}
+\subsection*{0.5 Stress Testing}
+Cuando hay WA y un brute force confiable, verifica contra casos aleatorios pequeños. Bloque base:
 
-\subsection*{4.3 Permutaciones vs Combinaciones (1D vs 2D)}
-Al contar composiciones de un alfabeto $\Sigma = \{c_1, \dots, c_n\}$ que alcanzan una suma $S$:
-\begin{itemize}
-  \item \textbf{Permutaciones (1D - Dice / Coin Comb. I):}
-  El estado es solo la suma $s \in Q$. En cada paso se itera sobre \textit{todo el alfabeto $\Sigma$}:
-  $$dp[s] = \sum_{c \in \Sigma} dp[s - c]$$
-  Distingue órdenes distintos: $[1, 2]$ y $[2, 1]$ forman caminos distintos en el DAG.
-  \item \textbf{Combinaciones (2D - Knapsack / Coin Comb. II):}
-  Para colapsar órdenes equivalentes, se expande el estado a $(i, s)$ acotando el prefijo de decisiones permitidas a $\{c_1, \dots, c_i\}$:
-  $$dp[i][s] = dp[i-1][s] + dp[i][s - c_i]$$
-  Fuerza un orden topológico no decreciente, garantizando que cada combinación se cuente una sola vez.
-\end{itemize}
-
-\subsection*{4.4 Isomorfismo Universal con Grafos (DAGs)}
-Toda recurrencia de DP se reduce a caminos sobre el DAG inducido $G=(V, E)$ donde $V = Q$ y $E = \{(u, v) \mid \exists a : \delta(u, a) = v\}$:
-\begin{itemize}
-  \item \textbf{Mínimo Costo:} Camino más corto desde $q_0$ hasta $F$.
-  \item \textbf{Máximo Beneficio:} Camino más largo en el DAG.
-  \item \textbf{Conteo de Maneras:} Número de caminos dirigidos entre $q_0$ y $F$ (convergencia modular).
-\end{itemize}
-
----
-
-\section*{5. Grillas ($R \times C$) y Extrapolaciones}
-
-\subsection*{5.1 Mapeo Lineal (Flattening)}
-Convierte coordenadas 2D a un ID entero 1D:
-\begin{lstlisting}
-auto get_id = [&](int r, int c) { return r * C + c; };
-auto get_row = [&](int id) { return id / C; };
-auto get_col = [&](int id) { return id % C; };
-\end{lstlisting}
-
-\subsection*{5.2 Bipartición de Grillas (Tablero de Ajedrez)}
-Toda grilla con movimientos ortogonales (arriba, abajo, izquierda, derecha) es un \textbf{grafo bipartito}:
-\begin{itemize}
-  \item Conjunto A (Blancas): $(r + c) \pmod 2 == 0$.
-  \item Conjunto B (Negras): $(r + c) \pmod 2 == 1$.
-\end{itemize}
-\textbf{Aplicaciones Inmediatas:}
-\begin{itemize}
-  \item \textit{Colocar dominós $1 \times 2$ sin superposición:} Es exactamente el Emparejamiento Bipartito Máximo (Max Bipartite Matching) entre Blancas y Negras.
-  \item \textit{Mínimas celdas a bloquear para evitar dominós:} Por el Teorema de König, en grafos bipartitos:
-  $$\text{Min Vertex Cover} = \text{Max Matching}$$
-  $$\text{Max Independent Set} = (\text{Total Celdas}) - \text{Max Matching}$$
-\end{itemize}
-
-\subsection*{5.3 Flujo con Capacidad en Celdas}
-Si una celda $(r, c)$ solo puede ser atravesada $K$ veces por caminos disjuntos:
-\begin{itemize}
-  \item Divide cada celda $u$ en dos subnodos: $u_{in}$ y $u_{out}$.
-  \item Agrega arista interna: $u_{in} \to u_{out}$ con capacidad $K$.
-  \item Para vecinos transitables $v$, conecta: $u_{out} \to v_{in}$ con capacidad $\infty$.
-\end{itemize}
-
----
-
-\section*{6. Reconocimiento de Problemas Complejos}
-
-\subsection*{6.1 Min-Cut / Project Selection (Selección de Proyectos)}
-\textbf{Patrón del Enunciado:}
-\begin{itemize}
-  \item Hay proyectos que otorgan una ganancia positiva $P_i$.
-  \item Hay herramientas o licencias que cuestan $C_j$.
-  \item Restricción de dependencia: \textit{"Para realizar el proyecto $i$, es obligatorio comprar la herramienta $j$"}.
-  \item Se desea maximizar la ganancia neta.
-\end{itemize}
-
-\textbf{Reducción a Min-Cut:}
-\begin{enumerate}
-  \item Conecta la Fuente $S \to \text{Proyecto}_i$ con capacidad $P_i$.
-  \item Conecta cada $\text{Herramienta}_j \to \text{Sumidero } T$ con capacidad $C_j$.
-  \item Conecta $\text{Proyecto}_i \to \text{Herramienta}_j$ con capacidad $\infty$.
-  \item $\text{Respuesta} = \sum (\text{Todas las Ganancias}) - \text{Dinic.min\_cut}(S, T)$.
-\end{enumerate}
-
-\subsection*{6.2 2-SAT Implícito}
-\textbf{Patrón del Enunciado:}
-Problemas donde cada elemento tiene exactamente 2 estados excluyentes ($0$ o $1$, Izquierda o Derecha, Sala A o Sala B) y te dan restricciones por pares:
-\begin{itemize}
-  \item \textit{"No pueden estar ambos activos":} $\neg (A \land B) \iff (A \implies \neg B) \land (B \implies \neg A)$.
-  \item \textit{"Al menos uno debe estar activo":} $(A \lor B) \iff (\neg A \implies B) \land (\neg B \implies A)$.
-  \item \textit{"Deben ser iguales":} $(A \iff B) \iff (A \implies B) \land (B \implies A) \land (\neg A \implies \neg B) \land (\neg B \implies \neg A)$.
-\end{itemize}
-\textbf{Solución:} Si $x$ y $\neg x$ están en la misma componente fuertemente conexa (SCC), es imposible. De lo contrario, la asignación es válida.
-
-\subsection*{6.3 Flujos con Demandas Mínimas (Circulación)}
-Si cada arista $e = (u, v)$ exige un flujo dentro de un rango $[L_e, R_e]$:
-\begin{enumerate}
-  \item Reemplaza la capacidad por $R_e - L_e$.
-  \item Crea una super-fuente $S'$ y un super-sumidero $T'$.
-  \item Para cada vértice $u$, define su balance de demanda:
-  $$D[u] = \sum_{e \text{ entra a } u} L_e - \sum_{e \text{ sale de } u} L_e$$
-  \item Si $D[u] > 0$, añade arista $S' \to u$ con capacidad $D[u]$.
-  \item Si $D[u] < 0$, añade arista $u \to T'$ con capacidad $-D[u]$.
-  \item Si el flujo máximo desde $S'$ satura todas las aristas que salen de $S'$, existe una circulación válida.
-\end{enumerate}
-
-\subsection*{6.4 Teorema de Dilworth (Anticadenas en DAGs)}
-En un conjunto parcialmente ordenado (DAG transitivo):
-\begin{itemize}
-  \item \textbf{Cadena:} Secuencia donde cada elemento es menor que el siguiente.
-  \item \textbf{Anticadena:} Conjunto de elementos donde ninguno es comparable con otro.
-  \item \textbf{Teorema:} El tamaño de la \textbf{máxima anticadena} es igual al número mínimo de caminos disjuntos en vértices que cubren todo el DAG (resoluble con Bipartite Matching duplicando vértices).
-\end{itemize}
-
-\subsection*{6.5 BFS 0-1 (Grafos Implícitos)}
-Si las transiciones entre estados tienen costo estrictamente $0$ o $1$:
-\begin{itemize}
-  \item \textbf{NUNCA} uses Dijkstra ($O(E \log V)$).
-  \item Usa \texttt{ZeroOneBfs} con \texttt{std::deque}:
-  \begin{itemize}
-    \item Si la arista pesa 0: \texttt{dq.push\_front(\{v, d\})}.
-    \item Si la arista pesa 1: \texttt{dq.push\_back(\{v, d + 1\})}.
-  \end{itemize}
-  Complejidad $O(V + E)$ en tiempo lineal estricto.
-\end{itemize}
-
-\subsection*{6.6 Meet-in-the-Middle}
-\textbf{Señal inequívoca:} $N \approx 36 \dots 42$.
-\begin{itemize}
-  \item $2^{40} \approx 10^{12} \implies$ Imposible en 1 segundo.
-  \item Divide en dos mitades de tamaño $N/2 \approx 20$:
-  \begin{itemize}
-    \item Mitad 1: Genera los $2^{20} \approx 10^6$ valores en un vector $A$ y ordénalo.
-    \item Mitad 2: Para cada uno de los $2^{20}$ valores $x$ de la mitad 2, busca en $A$ con \texttt{std::lower\_bound} el complemento óptimo.
-  \end{itemize}
-  Complejidad: $O(2^{N/2} \cdot \frac{N}{2}) \approx 2 \times 10^7$ operaciones (entra sobrado en 1 segundo).
-\end{itemize}
-
-\subsection*{6.7 Búsqueda Binaria sobre la Respuesta}
-Sospecha inmediata ante las siguientes frases:
-\begin{itemize}
-  \item \textit{"Minimizar el máximo valor..."}
-  \item \textit{"Maximizar el mínimo valor..."}
-  \item \textit{"Halla el menor tiempo tal que..."}
-\end{itemize}
-Verifica la propiedad de monotonía: Si con valor $M$ es posible, ¿también es posible con $M+1$? Si la respuesta es sí, busca binariamente en el rango $[\text{low}, \text{high}]$.
-
----
-
-\section*{7. Strings y Hashing Anti-Hack}
-
-\subsection*{7.1 Rolling Hash con Base y Módulo Seguros}
-En plataformas como Codeforces o competencias con tests generados con cadenas de Thue-Morse, el módulo $10^9+7$ o bases fijas como $31$ son vulnerables a colisiones forzadas intencionalmente. Usa siempre:
-\begin{itemize}
-  \item Módulo grande primo: $M = 10^9 + 9$ o $2^{61}-1$.
-  \item Base aleatoria generada en tiempo de ejecución: $B \in [257, M - 2]$ con \texttt{rng}.
-\end{itemize}
-
-\begin{lstlisting}
-const ll MOD = 1e9 + 9;
-ll B; // Inicializado en main con rand_val(300, MOD - 2)
-
-struct StringHash {
-  vll h, p;
-  StringHash(const string& s) {
-    int n = s.size();
-    h.assign(n + 1, 0); p.assign(n + 1, 1);
-    for (int i = 0; i < n; i++) {
-      h[i + 1] = (h[i] * B + s[i]) % MOD;
-      p[i + 1] = (p[i] * B) % MOD;
-    }
-  }
-  // Hash del substring s[l..r] (0-based)
-  ll get(int l, int r) {
-    ll res = (h[r + 1] - h[l] * p[r - l + 1]) % MOD;
-    return (res + MOD) % MOD;
-  }
-};
-\end{lstlisting}
-
-\subsection*{7.2 Cuándo usar KMP vs Z-Algorithm vs Trie}
-\begin{itemize}
-  \item \textbf{KMP ($\pi$):} Ideal para encontrar el periodo más corto de una cadena, prefijo que es sufijo, o autómata de búsqueda de 1 patrón en streaming.
-  \item \textbf{Z-Algorithm ($Z$):} Ideal para saber para cada sufijo $S[i \dots]$ cuál es el prefijo común más largo (LCP) con toda la cadena. Es mucho más intuitivo de modificar que KMP.
-  \item \textbf{Aho-Corasick:} Indispensable si hay \textbf{múltiples patrones} simultáneos que buscar en un solo texto.
-\end{itemize}
-
----
-
-\section*{8. Geometría Computacional Segura}
-
-\subsection*{8.1 Producto Cruz Entero (Sin Floats)}
-Siempre que los puntos tengan coordenadas enteras ($\le 10^8$), calcula la orientación usando \texttt{long long} estricto:
-\begin{lstlisting}
-ll cross(Point a, Point b, Point c) {
-  return 1LL * (b.x - a.x) * (c.y - a.y) - 1LL * (b.y - a.y) * (c.x - a.x);
-}
-// cross > 0: Giro antihorario (a la izquierda)
-// cross < 0: Giro horario (a la derecha)
-// cross == 0: Puntos colineales
-\end{lstlisting}
-
-\subsection*{8.2 Convex Hull: Colinealidad en el Borde}
-En el algoritmo de Monotone Chain:
-\begin{itemize}
-  \item \textbf{Cáscara estricta (sin colineales):} Usa \texttt{cross(...) <= 0}.
-  \item \textbf{Preservando colineales en el borde:} Usa \texttt{cross(...) < 0}.
-\end{itemize}
-
-\subsection*{8.3 Intersección de Segmentos Entera}
-Para saber si dos segmentos $AB$ y $CD$ se cruzan estrictamente sin usar números flotantes:
-\begin{lstlisting}
-bool intersect(Point a, Point b, Point c, Point d) {
-  auto cp = [](Point p, Point q, Point r) {
-    ll v = cross(p, q, r);
-    return (v > 0) - (v < 0);
-  };
-  return cp(a, b, c) * cp(a, b, d) < 0 &&
-         cp(c, d, a) * cp(c, d, b) < 0;
-}
-\end{lstlisting}
-
-\subsection*{8.4 Calipers Rotativos (Rotating Calipers)}
-Calcula el diámetro de un polígono convexo en tiempo $O(N)$ encontrando los pares de puntos antípodas mediante avance de puntero monótono en sentido antihorario.
-
----
-
-\section*{9. Checklist de Emergencia Pre-Submit}
-
-Antes de presionar Submit y arriesgar una penalización de 20 minutos por Wrong Answer:
-
-\begin{itemize}
-  \item[\textbf{[ ]}] \textbf{¿Hay desbordamiento entero (Integer Overflow)?}
-  ¿Alguna multiplicación de dos enteros de $10^5$ o suma acumulada supera $2 \times 10^9$? Usa \texttt{1LL * a * b} o define \texttt{\#define int long long}.
-  \item[\textbf{[ ]}] \textbf{¿El valor de INF es suficientemente grande?}
-  En Dijkstra con pesos de arista hasta $10^9$, \texttt{INT\_MAX} se desborda inmediatamente. Usa \texttt{LINF = 2e18}.
-  \item[\textbf{[ ]}] \textbf{¿Múltiples casos de prueba ($T$ testcases)?}
-  Verifica que las estructuras globales se limpien con precisión hasta $N$, no reasignando vectores gigantes con \texttt{memset} innecesario que cause TLE ($O(T \cdot \text{MAXN})$).
-  \item[\textbf{[ ]}] \textbf{Casos de Borde (Corner Cases):}
-  \begin{itemize}
-    \item $N = 1$ o $N = 2$.
-    \item Árbol con forma de estrella o línea recta (máxima profundidad).
-    \item Grafo disconexo (¿el problema exige imprimir $-1$?).
-    \item Cadenas vacías o caracteres todos idénticos.
-    \item Polígonos de área 0 o puntos superpuestos.
-  \end{itemize}
-\end{itemize}
-
-\subsection*{9.1 Script de Stress Testing Local (3 minutos)}
-Cuando tengas un código con WA y un algoritmo de fuerza bruta confiable ($O(N^2)$), crea un script de testeo rápido en Python:
 \begin{lstlisting}[language=Python]
 import random, subprocess
 
-for it in range(1000):
-  n = random.randint(1, 10)
-  a = [random.randint(1, 20) for _ in range(n)]
-  data = f"{n}\n" + " ".join(map(str, a)) + "\n"
+def gen():
+    n = random.randint(1, 8)          # tamanos pequenos (brute rapido)
+    a = [random.randint(1, 20) for _ in range(n)]
+    return f"{n}\n{' '.join(map(str, a))}\n"
 
-  out1 = subprocess.check_output("./sol", input=data, text=True)
-  out2 = subprocess.check_output("./brute", input=data, text=True)
-
-  if out1.strip() != out2.strip():
-    print(f"FAILED on test:\n{data}")
-    print(f"Sol: {out1}\nBrute: {out2}")
-    break
+for it in range(2000):
+    data = gen()
+    sol   = subprocess.check_output("./sol",   input=data, text=True).strip()
+    brute = subprocess.check_output("./brute", input=data, text=True).strip()
+    if sol != brute:
+        print("FALLO en:\n" + data)
+        print("sol:", sol, "\nbrute:", brute)
+        break
+else:
+    print("OK: no se encontraron diferencias")
 \end{lstlisting}
+
+\textbf{Uso:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Compila tu solución y un brute force (misma lectura de entrada, misma salida) como \textit{sol} y \textit{brute} (en Windows, con \textit{sol.exe} y \textit{brute.exe}).
+  \item \textbf{Qué variar en \textit{gen()}} según el tipo de problema:
+  \begin{itemize}\setlength{\itemsep}{1pt}
+    \item \textit{Arrays:} valores negativos y positivos, duplicados, extremos, tamaños 1 y 2.
+    \item \textit{Grafos/árboles:} árboles aleatorios (nodo $i$ conectado a un padre $< i$), grafos con pesos, disconexos, con ciclos.
+    \item \textit{Strings:} un solo carácter repetido, patrones que se solapan, cadenas cortas.
+    \item \textit{Grillas:} $R$, $C$ pequeños, con obstáculos, bordes de tamaño 1.
+    \item \textit{Flujo:} capacidades 0, cuellos de botella, demandas mínimas.
+  \end{itemize}
+  \item Si falla, reduce el caso a uno mínimo y depura con él.
+  \item Para salidas de precisión (double), compara con tolerancia, no con igualdad.
+  \item Si no aparece fallo en 2000 iteraciones, sube las iteraciones o cambia la semilla.
+\end{itemize}
 
 ---
 
-\section*{10. Árbol de Navegación del Cuadernillo (Plantilla PDF)}
+\section*{1. Main y Configuración (\textit{src/main.cpp})}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{fastio}: \textit{sync\_with\_stdio} apagado.
+  \item \textit{all}, \textit{rall}, \textit{pb}.
+  \item typedefs \textit{ll}, \textit{ld}, \textit{pii}, \textit{vi}, \textit{vll}.
+  \item constantes \textit{INF}, \textit{LINF}, \textit{MOD}, \textit{EPS}.
+  \item \textit{rand\_val(a, b)}: entero aleatorio.
+  \item pbds (\textit{ordered\_set}) incluido; \textit{solve()} con bucle de $T$ testcases.
+\end{itemize}
 
-Mapa jerárquico de contenidos y número de página exacto en \texttt{plantilla.pdf} para búsqueda ultrarrápida durante la competencia:
+\textbf{Tips y errores:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Usa \textit{rand\_val} para bases aleatorias de hash y test aleatorio; el \textit{rng} local no colisiona con el de \textit{rq.hpp}.
+  \item No uses \textit{endl} (flushea). Usa \textit{'\textbackslash n'}.
+  \item Los pragmas de optimización están comentados; actívalos solo si el juez lo permite y el problema lo exige.
+\end{itemize}
 
-\begin{lstlisting}[language={}]
-[Pag. 1] MAIN & CONFIG (src/main.cpp)
-  +-- Fast I/O, Pragmas, Typedefs (ll, vi, vll, pii)
-  +-- Constantes (INF, LINF, MOD, EPS)
+\section*{2. Grafos (\textit{graph.hpp})}
 
-[Pags. 1-8] GRAPHS (include/graph.hpp)
-  +-- [P. 1] Direcciones grilla (dx4, dy4, dx8, dy8), isValid
-  +-- [P. 1] DSU (Union-Find con component_size y members)
-  +-- [P. 1] Graph<T> & Edge<T> (1-based)
-  +-- [P. 1-2] Dijkstra<T> (distancias y restore_path)
-  +-- [P. 2] ZeroOneBfs<T> (0-1 BFS con deque)
-  +-- [P. 2] BFS / DFS clasico & ciclo en dirigido
-  +-- [P. 2-3] Bellman-Ford & SPFA (ciclos negativos)
-  +-- [P. 3] Floyd-Warshall (all-pairs shortest path)
-  +-- [P. 3] Kruskal (MST con DSU) & Prim
-  +-- [P. 3-4] Topological Sort (Kahn con queue)
-  +-- [P. 4] Kosaraju / Tarjan (SCC componentes conexas)
-  +-- [P. 4-5] 2-SAT (TwoSat con asignacion booleana)
-  +-- [P. 5] Bridges & Articulation Points (Puntos de corte)
-  +-- [P. 5-6] Euler Path / Circuit (Hierholzer)
-  +-- [P. 6-7] Dinic (Max Flow con BFS niveles y DFS)
-  +-- [P. 7-8] Min Cost Max Flow (MCMF con potenciales)
-  +-- [P. 8] Dominator Tree & Bipartite Matching (Hopcroft)
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item[\textbf{Grillas}]
+  \item \textit{dx4}, \textit{dy4}, \textit{dx8}, \textit{dy8} (1).
+  \item \textit{isValid} (1).
+  \item[\textbf{Internas}]
+  \item \textit{Edge<T>}.
+  \item[\textbf{Conjuntos}]
+  \item \textit{DSU} (0): \textit{find}, \textit{unite}, \textit{component\_size}, \textit{members}, \textit{comps}, \textit{get\_components}.
+  \item[\textbf{Estructura}]
+  \item \textit{Graph<T>} (1): \textit{add\_directed\_edge}, \textit{add\_undirected\_edge}.
+  \item[\textbf{Caminos mínimos}]
+  \item \textit{Dijkstra<T>} (1): \textit{restore\_path}, \textit{invalid\_edges}.
+  \item \textit{MultiStateDijkstra<T>} (1): multi-estado.
+  \item \textit{ZeroOneBfs<T>} (1): pesos $\{0,1\}$.
+  \item \textit{FloydWarshall<T>} (1).
+  \item \textit{BellmanFord<T>} (1): ciclo negativo.
+  \item \textit{Bipartite<T>} (1).
+  \item[\textbf{Orden}]
+  \item \textit{TopoSort<T>} (1): vacío si hay ciclo.
+  \item \textit{DirectedCycle<T>} (1).
+  \item \textit{UndirectedCycle<T>} (1).
+  \item[\textbf{Componentes}]
+  \item \textit{TarjanSCC<T>} (1).
+  \item \textit{BridgeTree} (1): puentes, articulación, árbol de componentes 2-arista-conexas.
+  \item[\textbf{MST}]
+  \item \textit{Kruskal<T>} (1): devuelve índices de aristas.
+  \item[\textbf{Caminos especiales}]
+  \item \textit{EulerianCircuit<T>} (1).
+  \item \textit{Hamiltonian} (1, $N \le 15$).
+  \item \textit{FunctionalGraph} (1): k-ésimo sucesor, ciclos.
+  \item \textit{DominatorTree} (1).
+  \item[\textbf{LCA}]
+  \item \textit{LCA<T>} (1): binary lifting.
+  \item[\textbf{Booleano}]
+  \item \textit{TwoSat} (1): cláusulas, implicación, xor, equivalencia.
+  \item[\textbf{Emparejamiento}]
+  \item \textit{BipartiteMatcher} (1): Kuhn.
+  \item \textit{HopcroftKarp} (1).
+  \item[\textbf{Clique}]
+  \item \textit{MaxClique} (0, $N \le 60$).
+  \item[\textbf{Flujo}]
+  \item \textit{Dinic} (0): \textit{restore\_path}.
+  \item \textit{DinicLB} (1): cotas inferiores.
+  \item \textit{MCMF} (0): potenciales.
+\end{itemize}
 
-[Pags. 9-14] TREES (include/tree.hpp)
-  +-- [P. 9] Diametro y Centro de un arbol
-  +-- [P. 9-10] Binary Lifting & LCA (k-esimo ancestro)
-  +-- [P. 10-11] Heavy-Light Decomposition (HLD)
-  +-- [P. 11-12] Centroid Decomposition (solve por caminos)
-  +-- [P. 12] Euler Tour / Flattened Tree (tin/tout)
-  +-- [P. 13] DSU on Tree (Sack / Small to Large O(N log N))
-  +-- [P. 14] Virtual Tree / Arbol Auxiliar
+\textbf{Reconocimiento (patrón $\to$ algoritmo):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``Menor costo de $A$ a $B$'' $\to$ \textit{Dijkstra} (pesos $\ge 0$) o \textit{ZeroOneBfs} (solo $\{0,1\}$).
+  \item ``Con hasta $K$ descuentos/boletos/combustible'' $\to$ \textit{MultiStateDijkstra}: estado $(nodo, recurso)$, respuesta = $\min_{rem} dist[t][rem]$.
+  \item ``Costos negativos o detectar ciclo negativo'' $\to$ \textit{BellmanFord}.
+  \item ``Todos los pares, $N \le 400$'' $\to$ \textit{FloydWarshall}.
+  \item ``Conectar todo al mínimo costo'' $\to$ \textit{Kruskal}.
+  \item ``Orden de tareas con dependencias'' $\to$ \textit{TopoSort} (si hay ciclo devuelve vacío).
+  \item ``Recorrer cada arista una vez'' $\to$ Euleriano; ``cada nodo una vez'' $\to$ \textit{Hamiltonian} (solo $N \le 15$).
+  \item ``Cada nodo apunta a un único nodo'' (funcional) $\to$ \textit{FunctionalGraph}: k-ésimo sucesor, ciclos, \textit{dist\_to\_cycle}.
+  \item ``Asignar cada $X$ a un $Y$ sin repetir'' $\to$ \textit{BipartiteMatcher}/\textit{HopcroftKarp}. König: \textbf{min vertex cover = max matching}; \textbf{max independent set} $= N -$ matching. Dilworth: \textbf{máxima anticadena = min path cover} (con matching duplicando vértices).
+  \item ``Proyectos con ganancia + costos + dependencias obligatorias'' (Project Selection) $\to$ min-cut: $S \to$ proyecto (ganancia), herramienta $\to T$ (costo), proyecto $\to$ herramienta ($\infty$); respuesta $= \Sigma$ganancias $-$ mincut.
+  \item ``Variables binarias con restricciones por pares'' $\to$ \textit{TwoSat}. ``No ambas activas'' = $(A \Rightarrow \neg B) \wedge (B \Rightarrow \neg A)$; ``al menos una'' = $(\neg A \Rightarrow B) \wedge (\neg B \Rightarrow A)$; ``iguales'' = ambas implicaciones.
+  \item ``Grafo implícito'' (estados como nodos, transiciones como aristas) $\to$ BFS / 0-1 BFS / Dijkstra.
+  \item ``Minimizar el máximo / maximizar el mínimo / menor tiempo tal que...'' $\to$ \textbf{búsqueda binaria sobre la respuesta} con \textit{check} monótono (a menudo Dijkstra o greedy).
+  \item \textbf{Grillas:} aplanar con \textit{id = r*C + c}; grilla 4-conexa es \textbf{bipartita} por $(r+c) \bmod 2$ (dominós $\to$ matching; König para bloquear celdas); capacidad por celda $\to$ dividir $u$ en $u_{in} \to u_{out}$ con capacidad $K$ y $u_{out} \to v_{in}$ con $\infty$.
+\end{itemize}
 
-[Pags. 15-20] RANGE QUERIES (include/rq.hpp)
-  +-- [P. 15] Sparse Table (0-based, RMQ O(1))
-  +-- [P. 15] Fenwick Tree / BIT (1-based, sumas y rangos)
-  +-- [P. 15-16] 2D BIT & Range Update BIT
-  +-- [P. 16] Iterative Segment Tree (0-based, point update)
-  +-- [P. 16-17] Recursive SegTree con Lazy Propagation
-  +-- [P. 18] Dynamic / Implicit SegTree (nodos punteros)
-  +-- [P. 18-19] Merge Sort Tree (conteo <= k en rango)
-  +-- [P. 19-20] Persistent Segment Tree (versiones historicas)
-  +-- [P. 20] Mo's Algorithm con bloques sqrt y Hilbert
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{Graph}, \textit{Dijkstra}, \textit{LCA}, \textit{TwoSat}, \textit{BridgeTree}, \textit{DinicLB}, \textit{DominatorTree} son \textbf{1-based}; \textit{DSU}, \textit{Dinic}, \textit{MCMF}, \textit{MaxClique} son \textbf{0-based}.
+  \item \textit{DSU} es 0-based: si el problema da nodos $1..n$, usa \textit{DSU dsu(n+1)} (el nodo 0 queda aislado).
+  \item \textit{MultiStateDijkstra}: \textit{rem} es el recurso \textbf{restante}; usar $K$ descuentos termina en \textit{rem=0}.
+  \item \textit{invalid\_edges} requiere \textit{e.id != -1}; asigna ids al crear las aristas.
+  \item \textit{Kruskal} devuelve índices de aristas, no de nodos.
+  \item \textit{Dijkstra} con pesos negativos falla; usa \textit{BellmanFord}.
+  \item \textit{MaxClique} es 0-based y exponencial: solo $N \le 60$ con bitsets.
+  \item \textit{EulerianCircuit}: usa \textit{e.id} para no repetir aristas; en no dirigido el circuito tiene $E/2+1$ vértices.
+\end{itemize}
 
-[Pags. 21-24] STRINGS (include/string.hpp)
-  +-- [P. 21] KMP / Prefix Function (pi array)
-  +-- [P. 21] Z-Algorithm (Z-array O(N))
-  +-- [P. 21-22] StringHash (Rolling Hash doble modulo)
-  +-- [P. 22] Trie estandar (arbol de prefijos)
-  +-- [P. 22-23] Aho-Corasick (automata multi-patron)
-  +-- [P. 23] Suffix Automaton (SAM lineal O(N))
-  +-- [P. 23-24] Suffix Array & LCP Array (Kasai)
-  +-- [P. 24] Manacher (palindromos en O(N))
+\section*{3. Árboles (\textit{tree.hpp})}
 
-[Pags. 25-26] DYNAMIC PROGRAMMING (include/dp.hpp)
-  +-- [P. 25] LIS (Longest Increasing Subsequence O(N log N))
-  +-- [P. 25] Knapsack 0/1, Infinito y Acotado
-  +-- [P. 25] Matrix Exponentiation para DP lineal
-  +-- [P. 25-26] Convex Hull Trick (LineContainer dinamico)
-  +-- [P. 26] Divide and Conquer DP Optimization
-  +-- [P. 26] SOS DP (Sum Over Subsets en O(N 2^N))
-  +-- [P. 26] Tree Rerooting DP (despacho de raiz O(N))
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item[\textbf{Internas}]
+  \item \textit{TreeEdge<T>}.
+  \item[\textbf{Árbol base}]
+  \item \textit{Tree<T>} (1): raíz, euler \textit{tin}/\textit{tout}, \textit{sz}, \textit{depth}, \textit{get\_diameter} con camino, \textit{get\_centers}.
+  \item \textit{all\_farthest\_distances}: distancia máxima por nodo.
+  \item \textit{BinaryLifting<T>} (1): \textit{lca}, \textit{kth\_ancestor}, \textit{path\_sum}, \textit{path\_max}, \textit{path\_min}, \textit{dist\_weighted}, \textit{kth\_node\_on\_path}, \textit{is\_ancestor}.
+  \item \textit{EulerTourTree<T>} (1): mapea subárbol a \textit{[tin, tout]}.
+  \item \textit{HLD} (1): \textit{values\_on\_edges} nativo, \textit{process\_path}, \textit{process\_subtree}.
+  \item[\textbf{Centroid}]
+  \item \textit{CentroidPathProcessing} (1): Query-then-Add.
+  \item \textit{CentroidTree<T>} (1): distancia al nodo activo más cercano.
+  \item \textit{CentroidBinarySearch} (1): nodo oculto interactivo.
+  \item[\textbf{Subárboles y caminos}]
+  \item \textit{DSUOnTree} (1): small-to-large.
+  \item \textit{VirtualTree} (1): con lambdas de LCA.
+  \item \textit{TreeHashing} (1): isomorfismo.
+  \item \textit{RerootingDP} (1).
+  \item \textit{FastLCA} (1): Euler+RMQ $O(1)$.
+  \item \textit{MoOnTrees} (1).
+\end{itemize}
 
-[Pags. 27-31] MATHEMATICS (include/math.hpp)
-  +-- [P. 27] Criba lineal & Factorizacion rapida
-  +-- [P. 27] Binpow, Inverso modular, Combinatoria nCr
-  +-- [P. 28] ExtGCD & Teorema Chino del Resto (CRT)
-  +-- [P. 28] Miller-Rabin & Pollard-Rho O(N^0.25)
-  +-- [P. 29-30] NTT / FFT (Convolucion polinomial O(N log N))
-  +-- [P. 30-31] Gauss-Jordan & Base XOR (Linear Basis)
+\textbf{Reconocimiento:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``Ancestro común / distancia en árbol'' $\to$ \textit{BinaryLifting} ($O(\log N)$) o \textit{FastLCA} ($O(1)$ si hay muchas consultas).
+  \item ``Consultas sobre caminos (suma/mín/máx/asignación)'' $\to$ \textit{HLD} + \textit{LazySegTree}; con pesos en aristas usa \textit{values\_on\_edges = true}.
+  \item ``Consultas sobre subárboles'' $\to$ \textit{EulerTourTree} + Fenwick/SegTree.
+  \item ``Para cada nodo como raíz, calcula $X$'' $\to$ \textit{RerootingDP} (merge + extend + finalize).
+  \item ``Contar/optimizar caminos por el árbol (ej. exactamente $K$ aristas)'' $\to$ \textit{CentroidPathProcessing}.
+  \item ``Actualizar y consultar el nodo activo más cercano / suma de distancias'' $\to$ \textit{CentroidTree} (inyecta la función de distancia).
+  \item ``Encontrar un nodo oculto con consultas interactivas'' $\to$ \textit{CentroidBinarySearch}.
+  \item ``Estadísticas de colores por subárbol'' $\to$ \textit{DSUOnTree}.
+  \item ``DP sobre un subconjunto de nodos (con LCA de por medio)'' $\to$ \textit{VirtualTree}.
+  \item ``Frecuencias de colores/valores en caminos $u$--$v$'' $\to$ \textit{MoOnTrees}.
+  \item ``¿Dos árboles son isomorfos?'' $\to$ \textit{TreeHashing}.
+  \item Diámetro y centros $\to$ \textit{Tree.get\_diameter/get\_centers}.
+\end{itemize}
 
-[Pags. 32-34] GEOMETRY (include/geometry.hpp)
-  +-- [P. 32] Point struct, dot, cross, norm, orient
-  +-- [P. 32] Interseccion y distancias a lineas/segmentos
-  +-- [P. 32-33] Convex Hull (Monotone Chain con colineales)
-  +-- [P. 33] Rotating Calipers (diametro maximo)
-  +-- [P. 33] Area de poligono y punto en poligono
-  +-- [P. 33-34] Interseccion de Semiplanos (Halfplane)
-  +-- [P. 34] Circulos (interseccion con linea y circulo)
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Todo en \textit{tree.hpp} es \textbf{1-based}.
+  \item \textit{Tree} requiere \textit{init(root)} antes de \textit{tin} y \textit{tout}; \textit{all\_farthest\_distances} usa el diámetro y asume el árbol inicializado.
+  \item \textit{HLD} con \textit{values\_on\_edges}: el LCA se excluye automáticamente; no consultes el nodo raíz.
+  \item \textit{RerootingDP}: \textit{merge} debe ser asociativo/conmutativo para el paso top-down (usa prefijos/sufijos si no es invertible).
+  \item \textit{CentroidPathProcessing}: modifica \textit{PathState}, \textit{GlobalState}, \textit{extend}, \textit{query\_and\_merge}, \textit{add\_to\_global}, \textit{clear\_global}.
+  \item \textit{CentroidTree}: modifica \textit{State}, \textit{NEUTRAL}, \textit{merge}, \textit{combine}.
+  \item \textit{MoOnTrees}: implementa \textit{toggle(u)} antes de \textit{solve}.
+  \item \textit{VirtualTree}: recibe \textit{get\_lca}, \textit{is\_anc}, \textit{get\_dist}, y orden por \textit{tin} como lambdas.
+\end{itemize}
 
-[Pag. 35] BIT OPERATIONS (include/bits.hpp)
-  +-- Builtins (__builtin_popcount, clz, ctz)
-  +-- Iteracion de submascaras sub = (sub - 1) & mask
+\section*{4. Range Queries (\textit{rq.hpp})}
 
-[Pags. 36-37] EXTRA (include/extra.hpp)
-  +-- Custom Hash para unordered_map / set
-  +-- Compresion de coordenadas (coordinate compression)
-  +-- Fast I/O & Custom Allocator
-\end{lstlisting}
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{SparseTable} (0): consultas estáticas idempotentes (min/max/gcd).
+  \item \textit{FenwickTree} (1): sumas + update puntual.
+  \item \textit{IterativeSegTree} (0): suma/min/max + update puntual.
+  \item \textit{RecursiveSegTree} (0): \textit{Node}+\textit{merge}, \textit{find\_first}.
+  \item \textit{MaxSubarraySegTree} (0): máxima suma de subsegmento contiguo.
+  \item \textit{LazySegTree} (0): \textit{add\_range}, \textit{set\_range}, \textit{get}.
+  \item \textit{DynamicSegTree} (1..max): sparse sin compresión.
+  \item \textit{PersistentSegTree} (0): versiones históricas.
+  \item \textit{FenwickTree2D} (1): submatrices + update puntual.
+  \item \textit{MergeSortTree} (0): conteo $\le k$ en rango + update.
+  \item \textit{SqrtDecomposition} (0).
+  \item \textit{Treap} (0): orden estadístico.
+  \item \textit{ImplicitTreap} (0): secuencia con reverse.
+  \item \textit{Mo} (0): consultas offline.
+  \item \textit{MoWithUpdates} (0): Mo 3D.
+  \item \textit{RollbackMo} (0): solo add.
+\end{itemize}
+
+\textbf{Reconocimiento:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item RMQ estático $\to$ \textit{SparseTable}.
+  \item Suma con updates puntuales $\to$ \textit{Fenwick} (más rápido y simple que el segment tree).
+  \item Operación no idempotente o con updates $\to$ segment tree; si la operación es compleja, redefine \textit{Node}+\textit{merge} en \textit{RecursiveSegTree}.
+  \item ``Máxima suma de subsegmento en un rango'' $\to$ \textit{MaxSubarraySegTree} (nodo con \textit{sum, pref, suff, ans}).
+  \item ``Suma/asignación sobre un rango + consulta'' $\to$ \textit{LazySegTree}.
+  \item ``Índices enormes sin comprimir'' $\to$ \textit{DynamicSegTree}.
+  \item ``Consultas sobre versiones anteriores'' (ej. k-ésimo menor en rangos) $\to$ \textit{PersistentSegTree}.
+  \item ``Contar elementos $\le k$ en un rango (con updates)'' $\to$ \textit{MergeSortTree}.
+  \item ``Consultas offline de rangos'' $\to$ \textit{Mo}; con updates $\to$ \textit{MoWithUpdates}; si solo se agrega (sin remover fácil) $\to$ \textit{RollbackMo}.
+  \item ``Secuencia dinámica con insert/borrar/revertir'' $\to$ \textit{ImplicitTreap}.
+  \item ``k-ésimo menor de un multiset dinámico'' $\to$ \textit{Treap}.
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textbf{Fenwick:} \textit{idx = 0} entra en \textbf{bucle infinito} (\textit{0 \& -0 = 0}). Si tus datos son 0-based, haz \textit{ft.add(x+1, v)} y \textit{ft.query(l+1, r+1)}.
+  \item 0-based: \textit{SparseTable}, \textit{IterativeSegTree}, \textit{RecursiveSegTree}, \textit{LazySegTree}, \textit{MaxSubarraySegTree}, \textit{PersistentSegTree}.
+  \item 0-based: \textit{MergeSortTree}, \textit{SqrtDecomposition}, \textit{Mo}, \textit{MoWithUpdates}, \textit{RollbackMo}, \textit{ImplicitTreap}. 1-based: \textit{FenwickTree}, \textit{FenwickTree2D}. \textit{DynamicSegTree} usa $1 \dots$ max.
+  \item \textit{LazySegTree}: \textit{update(type 1=add, 2=set)}; tras un \textit{set\_range}, un \textit{add\_range} posterior suma sobre el valor seteado.
+  \item \textit{PersistentSegTree}: \textit{update} devuelve la nueva raíz; guarda cada versión.
+  \item \textit{Mo}: las queries se ordenan internamente; \textit{add}/\textit{remove} deben ser $O(1)$.
+  \item \textit{Treap.kth\_element} es 0-based y devuelve \textit{LINF} fuera de rango.
+\end{itemize}
+
+\textbf{Variaciones:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Desacoplar \textit{Node}+\textit{merge} (max subarray ya en plantilla): nunca toques los índices del árbol.
+  \item Lazy para otra operación: edita \textit{merge} y cómo \textit{apply\_add}/\textit{apply\_set} combinan el valor del nodo.
+  \item Segment tree + Euler (subárboles) o + \textit{HLD} (caminos): los rangos que produce el árbol alimentan la estructura 1D.
+\end{itemize}
+
+\section*{5. Strings (\textit{string.hpp})}
+
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item[\textbf{Utilidades}]
+  \item \textit{to\_lower}, \textit{to\_upper}, \textit{trim}, \textit{replace\_all}, \textit{split}, \textit{join}.
+  \item[\textbf{Patrones y hashing}]
+  \item \textit{prefix\_function} (KMP).
+  \item \textit{z\_function}.
+  \item \textit{remove\_all\_occurrences} (KMP con pila).
+  \item \textit{rabin\_karp} (0): hash simple.
+  \item \textit{manacher}: radios de palíndromos.
+  \item \textit{StringHash} (0): doble módulo, bases configurables o aleatorias.
+  \item[\textbf{Estructuras}]
+  \item \textit{Trie}.
+  \item \textit{AhoCorasick} (0): multi-patrón.
+  \item \textit{SuffixAutomaton} (0).
+  \item \textit{SuffixArray} (0): con LCP RMQ.
+  \item \textit{PalindromicTree} (0).
+\end{itemize}
+
+\textbf{Reconocimiento (cuál usar):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{KMP (pi)}: periodo de una cadena, prefijo que es sufijo, autómata de un patrón.
+  \item \textit{Z}: para cada sufijo, LCP con el inicio de la cadena; más intuitivo que KMP para modificar.
+  \item \textit{remove\_all\_occurrences}: eliminar un patrón incluyendo ocurrencias encadenadas (ej. ``aaa'' con ``aa'').
+  \item \textit{StringHash}: comparar substrings en $O(1)$; con \textit{true} usa bases aleatorias (inmune a colisiones forzadas en jueces adversariales).
+  \item \textit{rabin\_karp}: posiciones de un patrón; base fija $\Rightarrow$ preferir \textit{StringHash} si hay riesgo de colisiones.
+  \item \textit{AhoCorasick}: \textbf{múltiples patrones} en un texto (conteo y primera aparición).
+  \item \textit{SuffixAutomaton}: substrings distintos, ocurrencias de un patrón, primera aparición.
+  \item \textit{SuffixArray}: sufijos ordenados + LCP entre cualquier par en $O(1)$ (repeticiones, substrings comunes, conteos con lcp).
+  \item \textit{Manacher}: radio del palíndromo más largo en cada centro.
+  \item \textit{PalindromicTree} (eertree): todos los palíndromos distintos, sus ocurrencias y primera posición.
+  \item \textit{Trie}: autómatas de prefijos, inserciones/búsquedas.
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{StringHash} y \textit{rabin\_karp} asumen minúsculas (\textit{s[i]-'a'+1}); adapta la constante si hay otros caracteres.
+  \item \textit{manacher} devuelve radios; el máximo radio es la longitud del palíndromo más largo.
+  \item \textit{SuffixArray} agrega internamente un \textit{'\$'} a la cadena; \textit{p[0]} es el sufijo ``\$''.
+  \item \textit{PalindromicTree}: \textit{count\_palindromes} son los distintos; llama \textit{compute\_occurrences()} antes de leer \textit{occ}.
+  \item \textit{StringHash(s, true)} genera bases distintas por proceso: no compares hashes de instancias diferentes.
+\end{itemize}
+
+\section*{6. Programación Dinámica (\textit{dp.hpp})}
+
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{LiChaoTree}: mínimo de $m \cdot x + c$ (x arbitraria).
+  \item \textit{dnc\_dp}: divide \& conquer para $dp[i][j] = \min_{k<j}(dp[i-1][k] + cost(k+1, j))$ con decisión monótona.
+  \item \textit{knuth\_dp}: optimización de Knuth para DP de intervalos.
+  \item \textit{DigitDP}.
+  \item \textit{sos\_dp}: suma sobre submáscaras.
+  \item \textit{lis}: con reconstrucción.
+  \item \textit{bitset\_knapsack}.
+  \item \textit{WQS}: Alien's trick.
+  \item \textit{CHTDeque}: pendientes monótonas.
+\end{itemize}
+
+\textbf{Marco teórico (DP = caminos sobre un DAG):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Estado = nodo; transición = arista; DP = caminos sobre el DAG inducido. Mínimo costo = camino más corto; máximo beneficio = camino más largo; conteo = número de caminos.
+  \item Ante un DP ``duro'', responde en papel: (1) \textbf{eje de avance}: ¿qué variable avanza monótono (índice, suma, tiempo, bits)?; (2) \textbf{memoria mínima}: ¿qué información del pasado condiciona el futuro?; (3) \textbf{decisiones legales}: ¿qué transiciones e invariantes hay?
+  \item \textbf{Permutaciones vs combinaciones:} contar composiciones que suman $S$ con 1D ($dp[s] = \sum_c dp[s-c]$, distingue orden) vs 2D ($dp[i][s]$ con índice de moneda, orden fijo, colapsa combinaciones).
+\end{itemize}
+
+\textbf{Reconocimiento (qué optimización):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``$dp[i] = \min_j (m_j \cdot x_i + b_j)$'' $\to$ \textit{LiChaoTree} (x arbitraria) o \textit{CHTDeque} (pendientes y $x$ monótonos).
+  \item ``Particionar en $K$ grupos / $dp[i][j] = \min_k (dp[i-1][k] + C(k,j))$ con $opt$ monótono'' $\to$ \textit{dnc\_dp}.
+  \item ``Intervalos: $dp[i][j] = \min_k(dp[i][k] + dp[k][j]) + cost$'' $\to$ \textit{knuth\_dp}.
+  \item ``Contar números que cumplen condiciones de dígitos'' $\to$ \textit{DigitDP} (recuerda \textit{tight} y \textit{lz}).
+  \item ``Suma sobre subconjuntos de máscaras'' $\to$ \textit{sos\_dp} ($O(N 2^N)$).
+  \item ``Subsecuencia creciente más larga (con reconstrucción)'' $\to$ \textit{lis}.
+  \item ``¿Subconjunto suma exactamente $S$?'' $\to$ \textit{bitset\_knapsack} (rápido, $S \le 10^5$ fijo).
+  \item ``Exactamente $K$ elementos/particiones con función convexa'' $\to$ \textit{WQS} (Alien's trick).
+  \item ``Para cada nodo como raíz'' $\to$ \textit{RerootingDP} (tree.hpp).
+  \item \textbf{Greedy:} si no hay subestructura que exija DP (actividades, intervalos, monedas canónicas), ordena y elige localmente; verifica con un contraejemplo antes de descartar.
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{dnc\_dp}: \textit{cost} debe evaluarse en $O(1)$ (usa prefijos); para particionar en $K$ grupos, \textit{dp\_prev[0] = 0}; 0-based.
+  \item \textit{knuth\_dp}: requiere quadrangle inequality en \textit{cost}.
+  \item \textit{DigitDP}: \textit{memo} se resetea en cada \textit{solve}; \textit{lz} evita contar ceros a la izquierda.
+  \item \textit{WQS}: \textit{check(mid).se >= K} decide la búsqueda.
+  \item \textit{CHTDeque.query(x)} exige $x$ no decreciente; usa \textit{query\_bs} si $x$ es arbitraria.
+  \item \textit{bitset\_knapsack}: \textit{MAX\_SUM} está fijo en $10^5$; si el objetivo es mayor, redimensiona la constante.
+\end{itemize}
+
+\section*{7. Matemáticas (\textit{math.hpp})}
+
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{modpow}.
+  \item \textit{ext\_gcd}.
+  \item \textit{modinv}.
+  \item \textit{crt}: dos congruencias.
+  \item \textit{solve\_crt\_array}.
+  \item \textit{Sieve}: primos, \textit{spf}, \textit{mu}, \textit{phi}, \textit{factorize}.
+  \item \textit{Combinatorics}: \textit{nCr}, \textit{catalan}.
+  \item \textit{gauss}: sistemas lineales (double).
+  \item \textit{multiply} (FFT): polinomios enteros.
+  \item \textit{multiply\_mod} (NTT).
+  \item \textit{nim\_game}.
+  \item \textit{sum\_n}, \textit{sum\_squares}, \textit{sum\_cubes}, \textit{geom\_sum}.
+  \item \textit{Matrix}: multiplicación y potencia modular.
+  \item \textit{berlekamp\_massey}.
+  \item \textit{PollardRho}: \textit{is\_prime} (Miller-Rabin), \textit{factorize} hasta $2^{64}$.
+  \item \textit{Lucas}.
+  \item \textit{xor\_convolution}, \textit{or\_convolution}, \textit{and\_convolution} (FWHT).
+  \item \textit{floor\_sum}.
+\end{itemize}
+
+\textbf{Reconocimiento:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``Recurrencia lineal grande / número de caminos en $k$ pasos'' $\to$ \textit{Matrix.power}.
+  \item ``Conjeturar la recurrencia de una secuencia'' $\to$ \textit{berlekamp\_massey}.
+  \item ``$nCr$ con $n$ enorme y módulo primo pequeño'' $\to$ \textit{Lucas}.
+  \item ``Multiplicar polinomios'' $\to$ \textit{multiply} (FFT, enteros) o \textit{multiply\_mod} (NTT). ``Convoluciones XOR/OR/AND'' $\to$ FWHT.
+  \item ``Sistema de congruencias'' $\to$ \textit{crt}/\textit{solve\_crt\_array}.
+  \item ``Factorizar enteros de hasta $2^{64}$ / ¿es primo?'' $\to$ \textit{PollardRho}.
+  \item ``Möbius / totient / factorizar muchos valores'' $\to$ \textit{Sieve}.
+  \item ``Juego de Nim'' $\to$ xor de pilas (\textit{nim\_game}).
+  \item ``Sumatorias cerradas'' $\to$ \textit{sum\_n} etc.; ``$\sum \lfloor (ai+b)/m \rfloor$'' $\to$ \textit{floor\_sum}.
+  \item ``Sistema de ecuaciones lineales'' $\to$ \textit{gauss}.
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{modinv} exige $\gcd(a, m) = 1$ (\textit{assert}).
+  \item \textit{crt} con congruencias inconsistentes devuelve $\{-1, -1\}$; verifícalo.
+  \item NTT requiere tamaño potencia de 2 y que el módulo tenga la raíz (1e9+7 usa raíz primitiva 3).
+  \item FFT usa \textit{double}: para coeficientes modulares muy grandes prefiere \textit{multiply\_mod}.
+  \item \textit{Matrix} multiplica en $O(r \cdot c^2)$: cuidado con matrices grandes.
+  \item \textit{Lucas} preprocesa factoriales hasta $p-1$ mód $p$.
+\end{itemize}
+
+\section*{8. Geometría (\textit{geometry.hpp})}
+
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{cmp}: comparación con EPS.
+  \item \textit{Point<T>}: operadores + orden lexicográfico.
+  \item \textit{dot}, \textit{cross}, \textit{cross(p,a,b)}, \textit{norm2}, \textit{norm}.
+  \item \textit{sgn}, \textit{orient}.
+  \item \textit{on\_segment}.
+  \item \textit{segment\_intersect}.
+  \item \textit{polygon\_area\_2}: doble del área.
+  \item \textit{boundary\_points}: Pick.
+  \item \textit{point\_in\_polygon}.
+  \item \textit{convex\_hull}: preserva colineales.
+  \item \textit{closest\_pair}.
+  \item \textit{Event1D}, \textit{Event2D}: sweep line.
+  \item \textit{polar\_sort}.
+  \item \textit{dist\_to\_line}.
+  \item \textit{dist\_to\_segment}.
+  \item \textit{line\_intersect}.
+  \item \textit{rotating\_calipers}: diámetro.
+  \item \textit{Circle}.
+  \item \textit{circle\_line\_intersect}.
+  \item \textit{circle\_circle\_intersect}.
+  \item \textit{Halfplane}.
+  \item \textit{halfplane\_intersection}.
+  \item \textit{Point3D}.
+  \item \textit{dist\_point\_plane}, \textit{dist\_point\_line}.
+  \item \textit{line\_plane\_intersect}.
+\end{itemize}
+
+\textbf{Reconocimiento:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``Orientación / colinealidad'' $\to$ \textit{cross}, \textit{orient} (enteros).
+  \item ``¿Punto dentro de un polígono? / área / puntos del retículo'' $\to$ \textit{point\_in\_polygon}, \textit{polygon\_area\_2}, \textit{boundary\_points} (Pick: $A = I + B/2 - 1$).
+  \item ``Cáscara convexa / envolvente'' $\to$ \textit{convex\_hull}; ``diámetro de un convexo'' $\to$ \textit{rotating\_calipers}.
+  \item ``Par de puntos más cercano'' $\to$ \textit{closest\_pair}.
+  \item ``Intersección de segmentos/rectas/círculos'' $\to$ \textit{segment\_intersect}, \textit{line\_intersect}, \textit{circle\_*}.
+  \item ``Región factible de restricciones lineales (semiplanos)'' $\to$ \textit{halfplane\_intersection}.
+  \item ``Intervalos que se solapan / área de unión de rectángulos'' $\to$ sweep line con \textit{Event1D}/\textit{Event2D} + segment tree.
+  \item ``Ordenar puntos por ángulo'' $\to$ \textit{polar\_sort}.
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Usa enteros (\textit{ll}) mientras puedas; con doubles usa \textit{cmp} y \textit{EPS}.
+  \item \textit{convex\_hull} preserva colineales en el borde (usa \textit{cross < 0}); para cáscara estricta cambia a \textit{cross <= 0}.
+  \item \textit{polygon\_area\_2} devuelve \textbf{el doble} del área (divide entre 2).
+  \item \textit{line\_intersect} no es válida si las rectas son paralelas.
+  \item \textit{halfplane\_intersection} devuelve vacío si la región es ilimitada o no existe; el lado válido es la izquierda de la recta orientada.
+  \item \textit{point\_in\_polygon} devuelve 0 (fuera), 1 (borde), 2 (dentro).
+\end{itemize}
+
+\section*{9. Bits (\textit{bits.hpp})}
+
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{check\_bit}, \textit{set\_bit}, \textit{clear\_bit}, \textit{toggle\_bit}, \textit{lsb} (bit $i$ 0-based).
+  \item \textit{count\_bits}, \textit{count\_bits\_ll}, \textit{highest\_bit}, \textit{ctz}.
+  \item \textit{iterate\_submasks}: itera submáscaras (sin la vacía).
+  \item \textit{gospers\_hack}: máscaras con $k$ bits.
+  \item \textit{XorBasis}: base lineal xor.
+  \item \textit{BitTrie}: máximo xor con borrado.
+\end{itemize}
+
+\textbf{Reconocimiento:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``Máximo xor de un subconjunto / ¿se puede formar $k$?'' $\to$ \textit{XorBasis}.
+  \item ``Máximo xor de un valor contra un conjunto (dinámico)'' $\to$ \textit{BitTrie}.
+  \item ``DP sobre submáscaras'' $\to$ \textit{iterate\_submasks} (total $O(3^N)$) o \textit{sos\_dp} ($O(N 2^N)$).
+  \item ``Subconjuntos de tamaño exacto $k$'' $\to$ \textit{gospers\_hack}.
+  \item ``Comparar multiconjuntos de rangos'' $\to$ \textit{ZobristHash} (extra).
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Escribe \textit{1LL << i} (no \textit{1 << i}) con $i \ge 31$.
+  \item \textit{BitTrie} usa 30 bits por defecto (hasta $\approx 10^9$); sube a 60 para valores hasta $10^{18}$.
+  \item \textit{iterate\_submasks} no incluye la submáscara vacía (procesa \textit{sub = 0} aparte si la necesitas).
+  \item \textit{highest\_bit} devuelve $-1$ para 0; \textit{ctz} devuelve 64 para 0.
+\end{itemize}
+
+\section*{10. Extra (\textit{extra.hpp})}
+
+\textbf{Inventario (orden de la plantilla):}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{ordered\_set} (0): pbds, k-ésimo menor, \textit{order\_of\_key}.
+  \item \textit{ordered\_multiset} (0): pbds, permite duplicados.
+  \item \textit{custom\_hash}: splitmix64 anti-colisión.
+  \item \textit{MeetInTheMiddle}.
+  \item \textit{ZobristHash} (0).
+  \item \textit{BitsetReachability} (1).
+  \item \textit{compress\_coords} (0).
+\end{itemize}
+
+\textbf{Reconocimiento:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item ``k-ésimo menor dinámico / posición de un elemento'' $\to$ \textit{ordered\_set}.
+  \item ``\textit{unordered\_map} con claves numéricas (hackeadas)'' $\to$ \textit{custom\_hash}.
+  \item ``$N \approx 36\dots42$: demasiado para $2^N$, sin subestructura DP'' $\to$ \textit{MeetInTheMiddle} (dos mitades de $2^{N/2}$, buscar con \textit{lower\_bound}).
+  \item ``Comparar multiconjuntos de rangos en $O(1)$'' $\to$ \textit{ZobristHash} (prefijos XOR con hashes aleatorios por valor).
+  \item ``Alcanzabilidad todos-pares en grafos densos ($N^3/64$)'' $\to$ \textit{BitsetReachability}.
+  \item ``Comprimir coordenadas para segment tree/BIT/HLD'' $\to$ \textit{compress\_coords}.
+\end{itemize}
+
+\textbf{Errores y tips:}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item \textit{ordered\_multiset}: inserta \textit{\{valor, id\}} para permitir duplicados; \textit{find\_by\_order} devuelve \textit{\{valor, id\}}.
+  \item \textit{BitsetReachability} es 1-based.
+  \item \textit{compress\_coords} devuelve ids 0-based en orden creciente de valor.
+  \item \textit{MeetInTheMiddle.subset\_sum} asume valores no negativos para el objetivo exacto (verifica el problema).
+\end{itemize}
+
+---
+
+\section*{11. Recomendaciones}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Tras cada competencia, actualiza la guía y la plantilla: si un problema requirió modificar un algoritmo, documenta la variación.
+  \item Practica a conciencia los algoritmos que más se modifican en vivo: \textit{Dijkstra} (multi-estado), \textit{HLD}, segment trees (Node/merge y lazy), DP (identificación de recurrencia) y flujo (reducciones a min-cut).
+  \item El inventario refleja el orden de \textit{plantilla.pdf}; si cambias los headers, recompila la plantilla y revisa que la guía siga alineada.
+  \item Usa la guía como apoyo teórico y de navegación; el código vive en la plantilla.
+\end{itemize}
 
 \end{multicols}
 

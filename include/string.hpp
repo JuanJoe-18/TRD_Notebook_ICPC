@@ -127,24 +127,31 @@ vi manacher(const string& s) {
 }
 
 /**
- * Uso[0]: StringHash sh(s); sh.get_hash(l, r);
- * Hash doble de substrings para compararlos en $O(1)$.
- * Complejidad: preproceso $O(N)$, consulta $O(1)$.
+ * Uso[0]: StringHash sh(s); sh.get_hash(l, r); StringHash sh2(s, true); // bases aleatorias
+ * Hash doble de substrings para compararlos en O(1). Con random_base = true las
+ * bases se eligen al azar en tiempo de ejecucion (inmune a colisiones forzadas
+ * contra bases conocidas en jueces adversariales).
+ * Complejidad: preproceso O(N), consulta O(1).
  */
 struct StringHash {
   static constexpr ll MOD1 = 1000000007LL; // 1e9 + 7
   static constexpr ll MOD2 = 1000000009LL; // 1e9 + 9
-  static constexpr ll BASE1 = 31;
-  static constexpr ll BASE2 = 37;
   string s;
   int n;
+  ll B1, B2;
   vll h1, h2, p1, p2;
-  StringHash(const string& s) : s(s), n(s.size()), h1(n + 1, 0), h2(n + 1, 0), p1(n + 1, 1), p2(n + 1, 1) {
+  StringHash(const string& s, bool random_base = false)
+    : s(s), n(s.size()), B1(31), B2(37), h1(n + 1, 0), h2(n + 1, 0), p1(n + 1, 1), p2(n + 1, 1) {
+    if (random_base) {
+      static mt19937_64 rrng(chrono::steady_clock::now().time_since_epoch().count());
+      uniform_int_distribution<ll> d1(300, MOD1 - 2), d2(300, MOD2 - 2);
+      B1 = d1(rrng); B2 = d2(rrng);
+    }
     for (int i = 0; i < n; i++) {
-      h1[i + 1] = (h1[i] * BASE1 + (s[i] - 'a' + 1)) % MOD1;
-      h2[i + 1] = (h2[i] * BASE2 + (s[i] - 'a' + 1)) % MOD2;
-      p1[i + 1] = p1[i] * BASE1 % MOD1;
-      p2[i + 1] = p2[i] * BASE2 % MOD2;
+      h1[i + 1] = (h1[i] * B1 + (s[i] - 'a' + 1)) % MOD1;
+      h2[i + 1] = (h2[i] * B2 + (s[i] - 'a' + 1)) % MOD2;
+      p1[i + 1] = p1[i] * B1 % MOD1;
+      p2[i + 1] = p2[i] * B2 % MOD2;
     }
   }
   uint64_t get_hash(int l, int r) {

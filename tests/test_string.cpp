@@ -43,6 +43,16 @@ int main() {
   StringHash sh("hello world");
   CHECK(sh.get_hash(0, 4) == sh.get_hash(0, 4));
   CHECK(sh.get_hash(0, 2) != sh.get_hash(1, 3));
+  // StringHash con bases aleatorias (anti-hack)
+  {
+    StringHash rnd_sh("hello world", true);
+    CHECK(rnd_sh.get_hash(0, 4) == rnd_sh.get_hash(0, 4));
+    CHECK(rnd_sh.get_hash(0, 2) != rnd_sh.get_hash(1, 3));
+    StringHash r2("ababab", true);
+    CHECK(r2.get_hash(0, 1) == r2.get_hash(2, 3));
+    CHECK(r2.get_hash(0, 3) == r2.get_hash(2, 5));
+    CHECK(r2.get_hash(0, 1) != r2.get_hash(1, 2));
+  }
 
   // Trie
   Trie tr;

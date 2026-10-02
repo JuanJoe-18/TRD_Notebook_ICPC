@@ -109,6 +109,57 @@ struct RecursiveSegTree {
 };
 
 /**
+ * Uso[0]: MaxSubarraySegTree st(a); st.update(pos, val); st.query(L, R); st.best();
+ * Arbol de segmentos para la maxima suma de un subsegmento contiguo en un rango.
+ * Cada nodo guarda {sum, pref, suff, ans}; es el ejemplo canonico de desacoplar
+ * Node + merge sin tocar los indices del arbol.
+ * Modificables:
+ * - Para restringir a subsegmentos no vacios, cambia max(0LL, v) por v en el
+ *   constructor de Node (los neutros usan -LINF).
+ * Complejidad: actualizacion y consulta O(log N).
+ */
+struct MaxSubarraySegTree {
+  struct Node {
+    ll sum, pref, suff, ans;
+    Node(ll v = 0) { sum = v; pref = suff = ans = max(0LL, v); } // max(0,v): vacio permitido
+  };
+  int n;
+  vector<Node> st;
+  Node merge(const Node& a, const Node& b) {
+    Node res;
+    res.sum = a.sum + b.sum;
+    res.pref = max(a.pref, a.sum + b.pref);
+    res.suff = max(b.suff, b.sum + a.suff);
+    res.ans = max({a.ans, b.ans, a.suff + b.pref});
+    return res;
+  }
+  Node neutral() { Node x(-LINF); x.sum = 0; x.pref = x.suff = x.ans = -LINF; return x; }
+  MaxSubarraySegTree(const vll& a) : n(a.size()), st(4 * a.size()) { build(1, 0, n - 1, a); }
+  void build(int p, int L, int R, const vll& a) {
+    if (L == R) { st[p] = Node(a[L]); return; }
+    int mid = (L + R) / 2;
+    build(p << 1, L, mid, a);
+    build(p << 1 | 1, mid + 1, R, a);
+    st[p] = merge(st[p << 1], st[p << 1 | 1]);
+  }
+  void update(int p, int L, int R, int pos, ll val) {
+    if (L == R) { st[p] = Node(val); return; }
+    int mid = (L + R) / 2;
+    pos <= mid ? update(p << 1, L, mid, pos, val) : update(p << 1 | 1, mid + 1, R, pos, val);
+    st[p] = merge(st[p << 1], st[p << 1 | 1]);
+  }
+  Node query(int p, int L, int R, int qL, int qR) {
+    if (qL > R || qR < L) return neutral();
+    if (qL <= L && R <= qR) return st[p];
+    int mid = (L + R) / 2;
+    return merge(query(p << 1, L, mid, qL, qR), query(p << 1 | 1, mid + 1, R, qL, qR));
+  }
+  void update(int pos, ll val) { update(1, 0, n - 1, pos, val); }
+  ll query(int L, int R) { return query(1, 0, n - 1, L, R).ans; }
+  ll best() { return st[1].ans; }
+};
+
+/**
  * Uso[0]: LazySegTree st(a); st.add_range(L, R, v); st.set_range(L, R, v); st.query(L, R); st.get(pos);
  * Arbol de segmentos con propagacion perezosa y estructura de nodo + metodo merge para suma (o min/max) con add y set por rango.
  * Para cambiar la operacion, edita merge y la manera en que apply_add/apply_set combinan el valor de cada nodo.

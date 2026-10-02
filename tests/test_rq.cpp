@@ -305,6 +305,42 @@ int main() {
     }
   }
 
+  // Max subarray segtree (stress vs brute force Kadane)
+  {
+    mt19937 rnd(555);
+    for (int it = 0; it < 100; it++) {
+      int n = 1 + rnd() % 40;
+      vll a(n);
+      for (auto& x : a) x = (ll)(rnd() % 41) - 20;
+      MaxSubarraySegTree seg(a);
+      auto brute = [&](int L, int R) {
+        ll best = 0, cur = 0;
+        for (int i = L; i <= R; i++) { cur = max(0LL, cur + a[i]); best = max(best, cur); }
+        return best;
+      };
+      for (int q = 0; q < 30; q++) {
+        int L = rnd() % n, R = rnd() % n;
+        if (L > R) swap(L, R);
+        CHECK(seg.query(L, R) == brute(L, R));
+      }
+      int pos = rnd() % n;
+      a[pos] = (ll)(rnd() % 41) - 20;
+      seg.update(pos, a[pos]);
+      for (int q = 0; q < 20; q++) {
+        int L = rnd() % n, R = rnd() % n;
+        if (L > R) swap(L, R);
+        CHECK(seg.query(L, R) == brute(L, R));
+      }
+    }
+  }
+  // Max subarray: caso todo negativos -> 0 (subsegmento vacio permitido)
+  {
+    vll neg = {-5, -2, -7};
+    MaxSubarraySegTree seg(neg);
+    CHECK(seg.query(0, 2) == 0);
+    CHECK(seg.best() == 0);
+  }
+
   if (failures) { cout << "test_rq: " << failures << " fallos\n"; return 1; }
   cout << "test_rq: OK\n";
   return 0;

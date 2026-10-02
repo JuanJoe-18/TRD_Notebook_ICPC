@@ -25,6 +25,11 @@ const ll LINF = 1e18;
 const int MOD = 1e9+7;
 const double EPS = 1e-9;
 
+ll rand_val(ll a, ll b) {
+  static mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+  return uniform_int_distribution<ll>(a, b)(rng);
+}
+
 void solve(){}
 
 int main() {

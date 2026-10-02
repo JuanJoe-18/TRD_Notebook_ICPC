@@ -113,6 +113,53 @@ template <typename T = ll> struct Dijkstra {
 };
 
 /**
+ * Uso[1]: MultiStateDijkstra<ll> msd(g, K); msd.run(src); msd.dist[u][rem];
+ * Dijkstra multi-estado: el estado es (nodo, recurso restante) con K+1 capas.
+ * La transicion normal recorre aristas sin gastar recurso; la transicion especial
+ * (descuento, combustible, paridad de pasos) consume 1 recurso y su costo se define
+ * en special_cost. Util para problemas con hasta K cupones/cargas/boletos.
+ *
+ * Modificables:
+ * - special_cost(u, rem, e): costo de la transicion especial sobre la arista e
+ *   (por defecto e.weight / 2, ejemplo: 1 descuento a mitad de precio).
+ * - Si la transicion especial no consume recurso o altera el estado de otra forma,
+ *   edita el bloque "transicion especial" dentro de run.
+ * Complejidad: O((K+1) E log V) peor caso.
+ */
+template <typename T = ll> struct MultiStateDijkstra {
+  int n, K;
+  const Graph<T>& g;
+  vector<vector<T>> dist;
+  MultiStateDijkstra(const Graph<T>& g, int K) : g(g), K(K), n(g.n), dist(g.n + 1, vector<T>(K + 1, LINF)) {}
+  T special_cost(int u, int rem, const Edge<T>& e) { return e.weight / 2; }
+  void run(int src, int start_rem = -1) {
+    if (start_rem == -1) start_rem = K;
+    using Item = tuple<T, int, int>;
+    priority_queue<Item, vector<Item>, greater<Item>> pq;
+    dist[src][start_rem] = 0;
+    pq.push({0, src, start_rem});
+    while (!pq.empty()) {
+      auto [d, u, rem] = pq.top(); pq.pop();
+      if (d > dist[u][rem]) continue;
+      for (int id : g.adj[u]) {
+        auto& e = g.edges[id];
+        if (dist[u][rem] + e.weight < dist[e.to][rem]) {
+          dist[e.to][rem] = dist[u][rem] + e.weight;
+          pq.push({dist[e.to][rem], e.to, rem});
+        }
+        if (rem > 0) { // transicion especial: consume 1 recurso
+          T w2 = dist[u][rem] + special_cost(u, rem, e);
+          if (w2 < dist[e.to][rem - 1]) {
+            dist[e.to][rem - 1] = w2;
+            pq.push({dist[e.to][rem - 1], e.to, rem - 1});
+          }
+        }
+      }
+    }
+  }
+};
+
+/**
  * Uso[1]: auto dist = ZeroOneBfs<ll>().run(g, src);
  * Caminos minimos con pesos restringidos a $\{0, 1\}$ mediante un deque.
  * Complejidad: $O(V + E)$.
